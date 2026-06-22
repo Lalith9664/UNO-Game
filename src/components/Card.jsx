@@ -153,7 +153,7 @@ export const Card = ({
         ${isPlayable ? 'card-playable-shadow cursor-pointer border-white animate-float ring-2 ring-white/40 ring-offset-2 ring-offset-slate-900 z-20' : 'card-shadow z-10'}
         ${!isPlayable && !disabled && onClick ? 'opacity-90 hover:opacity-100 cursor-pointer' : ''}
         ${hoverable && isPlayable ? 'hover:-translate-y-4 hover:scale-105' : ''}
-        ${disabled ? 'opacity-35 saturate-[30%] brightness-[60%] cursor-not-allowed pointer-events-none' : ''}
+        ${disabled ? 'opacity-100 saturate-[30%] brightness-[65%] cursor-not-allowed pointer-events-none' : ''}
       `}
     >
       {/* Corner index - Top Left */}

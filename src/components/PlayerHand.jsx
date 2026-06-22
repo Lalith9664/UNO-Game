@@ -14,7 +14,7 @@ export const PlayerHand = ({
   isLandscapeMobile = false
 }) => {
   return (
-    <div className="w-full flex flex-col items-center">
+    <div className={`w-full flex flex-col items-center transition-all duration-300 ${!isCurrentTurn ? 'opacity-100' : ''}`}>
       {/* Player Header Info - hidden on landscape mobile to save space */}
       {!isLandscapeMobile && (
         <div className="w-full max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 px-2 sm:px-4 mb-0.5 sm:mb-2">
@@ -39,9 +39,13 @@ export const PlayerHand = ({
             <span className="text-slate-500 font-bold">{hand.length} {hand.length === 1 ? 'Card' : 'Cards'}</span>
           </h3>
           
-          {isCurrentTurn && (
+          {isCurrentTurn ? (
             <span className="text-[9px] sm:text-xs font-bold text-emerald-400 bg-emerald-500/10 px-1.5 py-0.25 sm:px-2 sm:py-0.5 rounded border border-emerald-500/20 animate-pulse-slow">
               YOUR TURN - SELECT A CARD
+            </span>
+          ) : (
+            <span className="text-[9px] sm:text-xs font-bold text-slate-500 bg-slate-700/30 px-1.5 py-0.25 sm:px-2 sm:py-0.5 rounded border border-slate-600/20">
+              WAITING FOR TURN
             </span>
           )}
         </div>
@@ -50,6 +54,7 @@ export const PlayerHand = ({
       {/* Cards List */}
       <div className={`w-fit mx-auto glass-panel-light border border-white/5 shadow-inner
         ${isLandscapeMobile ? 'max-w-[92vw] rounded-lg p-1' : 'max-w-[95vw] rounded-xl sm:rounded-2xl p-1.5 sm:p-2.5'}
+        ${!isCurrentTurn ? 'cursor-not-allowed' : ''}
       `}>
         {hand.length === 0 ? (
           <div className={`flex items-center justify-center text-slate-500 font-medium
@@ -62,7 +67,7 @@ export const PlayerHand = ({
             ${isLandscapeMobile ? 'pt-2 pb-0.5 px-2' : 'pt-4 pb-1.5 px-3'}
           `}>
             {hand.map((card, index) => {
-              // Calculate playability
+              // Calculate playability - only playable if it's the current player's turn
               const playable = isCurrentTurn && isValidMove(card, topCard, currentColor, hand);
 
               // Overlap class based on size to stack cards horizontally
@@ -78,14 +83,15 @@ export const PlayerHand = ({
                   className={`relative z-10 transform transition-all duration-300 flex-shrink-0 ${overlapClass}
                     ${playable ? 'hover:z-50 hover:scale-105' : ''}
                     ${playable ? (isLandscapeMobile ? 'hover:-translate-y-2' : 'hover:-translate-y-4') : ''}
+                    ${!isCurrentTurn ? 'pointer-events-none' : ''}
                   `}
                 >
                   <Card
                     card={card}
-                    onClick={() => playable && onPlayCard(card.id)}
+                    onClick={isCurrentTurn ? () => playable && onPlayCard(card.id) : undefined}
                     isPlayable={playable}
                     hoverable={false}
-                    disabled={!playable}
+                    disabled={!isCurrentTurn || !playable}
                     size={cardSize}
                   />
                 </div>

@@ -45,6 +45,7 @@ export default {
         'float': 'float 3s ease-in-out infinite',
         'deal-card': 'dealCard 0.5s ease-out forwards',
         'draw-card': 'drawCard 0.4s ease-out forwards',
+        'fade-in': 'fadeIn 0.4s ease-out forwards',
       },
       keyframes: {
         float: {
@@ -58,6 +59,10 @@ export default {
         drawCard: {
           '0%': { transform: 'translateY(-50px) scale(0.8)', opacity: '0' },
           '100%': { transform: 'translateY(0) scale(1)', opacity: '1' },
+        },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'scale(0.9)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
         }
       }
     },

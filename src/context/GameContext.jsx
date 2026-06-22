@@ -63,6 +63,10 @@ export const GameProvider = ({ children }) => {
   const [drawnCard, setDrawnCard] = useState(null); // Keep track of the card just drawn for instant play option
   const [unoAlert, setUnoAlert] = useState(null); // { playerName, message }
 
+  // Toast notification state
+  const [toast, setToast] = useState(null); // { message, type: 'error' | 'info' }
+  const toastTimeoutRef = useRef(null);
+
   // Turn timer state
   const [timerValue, setTimerValue] = useState(settings.turnTimer);
   const timerIntervalRef = useRef(null);
@@ -77,6 +81,20 @@ export const GameProvider = ({ children }) => {
   // Sound triggers helper
   const playSound = (type) => {
     playSynthSound(type, !settings.soundOn);
+  };
+
+  // Toast notification helper
+  const showToast = (message, type = 'error') => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ message, type });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+    }, 3000);
+  };
+
+  // Helper to get active player ID
+  const getActivePlayerId = () => {
+    return players[currentTurn]?.id || null;
   };
 
   // Sync Dark Mode theme with HTML element
@@ -287,6 +305,7 @@ export const GameProvider = ({ children }) => {
     setShowColorPicker(false);
     setPendingWildCard(null);
     setUnoAlert(null);
+    setToast(null);
     setMoveHistory([]);
     setMatchStats({
       startTime: Date.now(),
@@ -325,11 +344,14 @@ export const GameProvider = ({ children }) => {
   };
 
   // Draw Card action
-  const drawCard = () => {
+  const drawCard = (requestingPlayerId = null) => {
     if (gameStage !== 'playing' || hasDrawnThisTurn || showColorPicker) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) return; // Not your turn
+      if (players[currentTurn]?.id !== myPlayerId) {
+        showToast("It's not your turn.");
+        return;
+      }
       if (!isHost) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
@@ -390,11 +412,11 @@ export const GameProvider = ({ children }) => {
   };
 
   // Pass Turn action (after drawing and deciding not to play)
-  const passTurn = () => {
+  const passTurn = (requestingPlayerId = null) => {
     if (gameStage !== 'playing' || showColorPicker) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) return; // Not your turn
+      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
       if (!isHost) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
@@ -423,11 +445,11 @@ export const GameProvider = ({ children }) => {
   };
 
   // Play Card action
-  const playCard = (cardId) => {
+  const playCard = (cardId, requestingPlayerId = null) => {
     if (gameStage !== 'playing' || showColorPicker) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) return; // Not your turn
+      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
       if (!isHost) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
@@ -625,11 +647,11 @@ export const GameProvider = ({ children }) => {
   };
 
   // Handle color selection for Wild / Wild 4
-  const selectWildColor = (color) => {
+  const selectWildColor = (color, requestingPlayerId = null) => {
     if (!pendingWildCard) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) return; // Not your turn
+      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
       if (!isHost) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
@@ -647,11 +669,11 @@ export const GameProvider = ({ children }) => {
   };
 
   // Declare UNO
-  const declareUno = () => {
+  const declareUno = (requestingPlayerId = null) => {
     if (gameStage !== 'playing') return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) return; // Not your turn
+      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
       if (!isHost) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
@@ -813,9 +835,23 @@ export const GameProvider = ({ children }) => {
   const initSocket = () => {
     if (socketRef.current) return socketRef.current;
     
+    console.log('Initializing socket connection to:', window.location.origin);
     const newSocket = io(window.location.origin, {
       autoConnect: true,
       transports: ['websocket', 'polling']
+    });
+
+    newSocket.on('connect', () => {
+      console.log('Socket connected successfully with ID:', newSocket.id);
+    });
+
+    newSocket.on('connect_error', (err) => {
+      console.error('Socket connection error:', err);
+      showToast(`Connection error: ${err.message}. Check your port forward settings.`);
+    });
+
+    newSocket.on('disconnect', (reason) => {
+      console.warn('Socket disconnected:', reason);
     });
 
     socketRef.current = newSocket;
@@ -1053,6 +1089,7 @@ export const GameProvider = ({ children }) => {
         isHost,
         multiplayerError,
         setMultiplayerError,
+        toast,
         
         // Functions
         updateSettings,
@@ -1072,7 +1109,8 @@ export const GameProvider = ({ children }) => {
         playSound,
         createOnlineRoom,
         joinOnlineRoom,
-        leaveOnlineRoom
+        leaveOnlineRoom,
+        showToast
       }}
     >
       {children}

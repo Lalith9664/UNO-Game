@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, UserPlus, Trash2, ShieldAlert, RotateCcw, Home, History, HelpCircle, Volume2, VolumeX, X } from 'lucide-react';
+import { Users, UserPlus, Trash2, ShieldAlert, RotateCcw, Home, History, HelpCircle, Volume2, VolumeX, X, Maximize2, Minimize2 } from 'lucide-react';
 import { useUnoGame } from '../hooks/useUnoGame';
 import Card from '../components/Card';
 import DrawPile from '../components/DrawPile';
@@ -51,9 +51,13 @@ export const Game = () => {
     quitToLobby,
     resetGame,
     playSound,
-    leaveOnlineRoom
+    leaveOnlineRoom,
+    toast,
+    showToast
   } = useUnoGame();
 
+  // In multiplayer: only the active player can interact
+  // In local: always allow (bottom shows current turn's hand)
   const isMyTurn = isMultiplayer ? (players[currentTurn]?.id === myPlayerId) : true;
 
   const [newPlayerName, setNewPlayerName] = useState('');
@@ -66,18 +70,61 @@ export const Game = () => {
       : false
   );
 
+  const [isFullscreen, setIsFullscreen] = useState(
+    typeof document !== 'undefined' ? !!document.fullscreenElement : false
+  );
+
   const handleShuffleComplete = React.useCallback(() => {
     setShowShuffleAnimation(false);
   }, []);
+
+  const toggleFullscreen = () => {
+    playSound('click');
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error("Error attempting to enable fullscreen:", err);
+      });
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   React.useEffect(() => {
     const handleResize = () => {
       setWindowWidth(window.innerWidth);
       setIsLandscapeMobile(window.innerWidth > window.innerHeight && window.innerHeight < 500);
     };
+
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
   }, []);
+
+  // Automatically request fullscreen on first tap/interaction in mobile landscape mode
+  React.useEffect(() => {
+    if (!isLandscapeMobile || gameStage !== 'playing') return;
+
+    const handleAutoFullscreen = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch((err) => {
+          console.log("Automatic fullscreen request deferred:", err);
+        });
+      }
+      // Remove event listener after first click to avoid spamming calls
+      window.removeEventListener('click', handleAutoFullscreen);
+    };
+
+    window.addEventListener('click', handleAutoFullscreen);
+    return () => window.removeEventListener('click', handleAutoFullscreen);
+  }, [isLandscapeMobile, gameStage]);
 
   // Trigger shuffle animation when transitioning to 'playing' stage
   const prevStageRef = React.useRef(gameStage);
@@ -87,6 +134,25 @@ export const Game = () => {
     }
     prevStageRef.current = gameStage;
   }, [gameStage]);
+
+  // Block keyboard shortcuts when it's not your turn in multiplayer
+  React.useEffect(() => {
+    if (gameStage !== 'playing' || !isMultiplayer) return;
+
+    const handleKeyDown = (e) => {
+      if (!isMyTurn) {
+        // Block game-related keyboard shortcuts
+        if (['d', 'D', 'u', 'U', 'p', 'P', ' ', 'Enter'].includes(e.key)) {
+          e.preventDefault();
+          e.stopPropagation();
+          showToast("It's not your turn.");
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [gameStage, isMultiplayer, isMyTurn]);
 
   const handleAddPlayer = (e) => {
     e.preventDefault();
@@ -131,7 +197,7 @@ export const Game = () => {
                 className={`relative flex items-center gap-1.5 border rounded-full px-2 py-0.5 shadow-md transition-all duration-300
                   ${isCurrent 
                     ? 'border-amber-400 bg-slate-900/95 scale-105 shadow-amber-500/10 ring-2 ring-amber-500/20' 
-                    : 'border-white/5 bg-slate-950/60'
+                    : 'border-white/5 bg-slate-950/60 opacity-50'
                   }
                 `}
               >
@@ -153,6 +219,17 @@ export const Game = () => {
                 {player.hand.length === 1 && (
                   <span className="absolute -top-1 -right-1 bg-red-500 text-white border border-red-400 font-extrabold rounded-full px-1 py-0.25 text-[6px] shadow animate-bounce-slow">
                     UNO
+                  </span>
+                )}
+
+                {/* Turn status indicator */}
+                {isCurrent ? (
+                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-white font-extrabold rounded-full px-1.5 py-0.25 text-[5px] shadow tracking-wider whitespace-nowrap">
+                    YOUR TURN
+                  </span>
+                ) : (
+                  <span className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-slate-700/80 text-slate-400 font-bold rounded-full px-1 py-0.25 text-[4px] shadow tracking-wider whitespace-nowrap">
+                    WAITING
                   </span>
                 )}
               </div>
@@ -197,7 +274,7 @@ export const Game = () => {
             <div className={`
               relative border glass-panel transition-all duration-300 flex flex-col items-center
               w-20 sm:w-24 p-1.5 sm:p-2.5 rounded-xl sm:rounded-2xl gap-1 sm:gap-1.5
-              ${isCurrent ? 'border-amber-400 bg-slate-900/90 scale-105' : 'border-white/5 bg-slate-950/60'}
+              ${isCurrent ? 'border-amber-400 bg-slate-900/90 scale-105' : 'border-white/5 bg-slate-950/60 opacity-50'}
             `}>
               {/* Initials Avatar */}
               <div className={`
@@ -223,6 +300,17 @@ export const Game = () => {
               {player.hand.length === 1 && (
                 <span className="bg-red-500 text-white border border-red-400 font-extrabold rounded-full shadow animate-bounce-slow -top-1.5 -right-1.5 text-[8px] px-1.5 py-0.5">
                   UNO
+                </span>
+              )}
+
+              {/* Turn status badge */}
+              {isCurrent ? (
+                <span className="bg-emerald-500 text-white font-extrabold rounded-full px-2 py-0.5 text-[7px] sm:text-[8px] shadow tracking-wider animate-pulse-slow">
+                  YOUR TURN
+                </span>
+              ) : (
+                <span className="bg-slate-700/60 text-slate-400 font-bold rounded-full px-1.5 py-0.5 text-[6px] sm:text-[7px] shadow tracking-wider">
+                  WAITING
                 </span>
               )}
             </div>
@@ -436,6 +524,19 @@ export const Game = () => {
 
             {/* Sidebar toggle and game control buttons */}
             <div className="flex items-center gap-1.5 sm:gap-2">
+              {/* Fullscreen toggle button */}
+              <button
+                onClick={toggleFullscreen}
+                className={`${isLandscapeMobile ? 'p-1.5' : 'p-2.5 sm:p-3'} rounded-xl sm:rounded-2xl border transition-all glass-panel border-white/5 text-slate-300 hover:text-white hover:bg-white/5`}
+                title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+              >
+                {isFullscreen ? (
+                  <Minimize2 className={`${isLandscapeMobile ? 'h-3.5 w-3.5' : 'h-4 w-4 sm:h-5 sm:w-5'}`} />
+                ) : (
+                  <Maximize2 className={`${isLandscapeMobile ? 'h-3.5 w-3.5' : 'h-4 w-4 sm:h-5 sm:w-5'}`} />
+                )}
+              </button>
+
               {/* Event Logs toggle button */}
               <button
                 onClick={() => { playSound('click'); setShowHistory(!showHistory); }}
@@ -597,6 +698,20 @@ export const Game = () => {
             </div>
           )}
 
+          {/* Toast Notification */}
+          {toast && (
+            <div className={`fixed bottom-8 left-1/2 -translate-x-1/2 z-[70] animate-fade-in-up pointer-events-none`}>
+              <div className={`px-6 py-3 rounded-2xl font-bold text-sm tracking-wide shadow-2xl shadow-black/60 border backdrop-blur-xl flex items-center gap-2
+                ${toast.type === 'error' 
+                  ? 'bg-red-950/90 border-red-500/30 text-red-300' 
+                  : 'bg-slate-900/90 border-white/10 text-slate-200'}
+              `}>
+                {toast.type === 'error' && <ShieldAlert className="h-4 w-4 text-red-400 flex-shrink-0" />}
+                {toast.message}
+              </div>
+            </div>
+          )}
+
           {/* Color picking dropdown overlay modal */}
           <ColorPickerModal
             isOpen={showColorPicker}
@@ -633,12 +748,41 @@ export const Game = () => {
             <h3 className="text-xl font-black text-white tracking-wide uppercase">
               Tilt Your Screen
             </h3>
-            <p className="text-xs text-slate-400 leading-relaxed">
+            <p className="text-xs text-slate-405 leading-relaxed">
               Please rotate your device to landscape mode to play.
             </p>
           </div>
         </div>
       </div>
+
+      {/* Mobile Landscape Fullscreen Prompt Overlay */}
+      {isLandscapeMobile && !isFullscreen && (
+        <div 
+          onClick={toggleFullscreen}
+          className="fixed inset-0 z-[10000] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer select-none"
+        >
+          <div className="glass-panel max-w-xs p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center gap-6 hover:scale-[1.02] transition-all duration-300">
+            <div className="relative w-16 h-16 bg-gradient-to-br from-amber-400 to-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-500/25">
+              <Maximize2 className="h-8 w-8 text-white animate-pulse" />
+            </div>
+            
+            <div className="flex flex-col gap-2">
+              <h3 className="text-lg font-black text-white tracking-wide uppercase">
+                Immersive Mode
+              </h3>
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Tap anywhere to occupy the entire screen and play.
+              </p>
+            </div>
+            
+            <button 
+              className="bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-600 hover:to-amber-600 text-white font-extrabold text-xs px-6 py-3.5 rounded-xl uppercase tracking-wider border border-white/10 transition-all shadow-md shadow-orange-500/15"
+            >
+              Start Fullscreen
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

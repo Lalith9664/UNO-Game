@@ -46,6 +46,9 @@ export const GameProvider = ({ children }) => {
 
 
 
+  const [pendingDrawCount, setPendingDrawCount] = useState(0);
+  const [pendingDrawType, setPendingDrawType] = useState(null); // 'draw2' | 'wild4' | null
+
   // Active game state
   const [players, setPlayers] = useState([]);
   const [drawPile, setDrawPile] = useState([]);
@@ -171,7 +174,7 @@ export const GameProvider = ({ children }) => {
     }
 
     // Auto-advance turn
-    passTurn();
+    passTurn(activePlayer.id);
   };
 
   // Add event log helper
@@ -307,6 +310,8 @@ export const GameProvider = ({ children }) => {
     setUnoAlert(null);
     setToast(null);
     setMoveHistory([]);
+    setPendingDrawCount(0);
+    setPendingDrawType(null);
     setMatchStats({
       startTime: Date.now(),
       duration: 0,
@@ -345,14 +350,17 @@ export const GameProvider = ({ children }) => {
 
   // Draw Card action
   const drawCard = (requestingPlayerId = null) => {
-    if (gameStage !== 'playing' || hasDrawnThisTurn || showColorPicker) return;
+    if (gameStage !== 'playing' || showColorPicker) return;
+    if (pendingDrawCount === 0 && hasDrawnThisTurn) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) {
+      const isStringAndValidId = typeof requestingPlayerId === 'string' && requestingPlayerId.startsWith('p');
+      const effectivePlayerId = isStringAndValidId ? requestingPlayerId : myPlayerId;
+      if (players[currentTurn]?.id !== effectivePlayerId) {
         showToast("It's not your turn.");
         return;
       }
-      if (!isHost) {
+      if (!isHost && !isStringAndValidId) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
           action: { type: 'drawCard', playerId: myPlayerId }
@@ -364,29 +372,36 @@ export const GameProvider = ({ children }) => {
     let updatedDrawPile = [...drawPile];
     let updatedDiscardPile = [...discardPile];
 
-    if (updatedDrawPile.length === 0) {
-      const reshuffled = reshuffleDeck(updatedDiscardPile);
-      updatedDrawPile = reshuffled.draw;
-      updatedDiscardPile = reshuffled.discard;
+    const isFromStack = pendingDrawCount > 0;
+    const drawLimit = isFromStack ? pendingDrawCount : 1;
+
+    let dealCards = [];
+    for (let i = 0; i < drawLimit; i++) {
+      if (updatedDrawPile.length === 0) {
+        const reshuffled = reshuffleDeck(updatedDiscardPile);
+        updatedDrawPile = reshuffled.draw;
+        updatedDiscardPile = reshuffled.discard;
+      }
+      if (updatedDrawPile.length === 0) {
+        break;
+      }
+      dealCards.push(updatedDrawPile.pop());
     }
 
-    if (updatedDrawPile.length === 0) {
+    if (dealCards.length === 0) {
       addLog("No cards left to draw!");
       return;
     }
 
-    const card = updatedDrawPile.pop();
     playSound('draw');
 
     const activePlayer = players[currentTurn];
-    const isPlayable = isValidMove(card, updatedDiscardPile[updatedDiscardPile.length - 1], currentColor, activePlayer.hand);
-
     const updatedPlayers = players.map((player, idx) => {
       if (idx === currentTurn) {
         return {
           ...player,
-          hand: [...player.hand, card],
-          declaredUno: false // reset Uno status since they drew a card
+          hand: [...player.hand, ...dealCards],
+          declaredUno: false
         };
       }
       return player;
@@ -395,16 +410,31 @@ export const GameProvider = ({ children }) => {
     setPlayers(updatedPlayers);
     setDrawPile(updatedDrawPile);
     setDiscardPile(updatedDiscardPile);
+
+    if (isFromStack) {
+      setPendingDrawCount(0);
+      setPendingDrawType(null);
+      addLog(`${activePlayer.name} drew ${dealCards.length} stacked penalty cards.`);
+      
+      const activePlayerId = activePlayer.id;
+      setTimeout(() => {
+        passTurn(activePlayerId);
+      }, 800);
+      return;
+    }
+
+    const card = dealCards[0];
+    const isPlayable = isValidMove(card, updatedDiscardPile[updatedDiscardPile.length - 1], currentColor, activePlayer.hand);
+
     setHasDrawnThisTurn(true);
     setDrawnCard(card);
-
     addLog(`${activePlayer.name} drew 1 card.`);
 
-    // If card is not playable, end the turn automatically after a brief delay
     if (!isPlayable) {
       addLog(`${card.type === 'wild' ? 'Wild' : card.color.toUpperCase() + ' ' + card.value.toUpperCase()} drawn is not playable.`);
+      const activePlayerId = activePlayer.id;
       setTimeout(() => {
-        passTurn();
+        passTurn(activePlayerId);
       }, 1000);
     } else {
       addLog(`${card.type === 'wild' ? 'Wild' : card.color.toUpperCase() + ' ' + card.value.toUpperCase()} drawn is playable! Choose to play or pass.`);
@@ -416,8 +446,10 @@ export const GameProvider = ({ children }) => {
     if (gameStage !== 'playing' || showColorPicker) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
-      if (!isHost) {
+      const isStringAndValidId = typeof requestingPlayerId === 'string' && requestingPlayerId.startsWith('p');
+      const effectivePlayerId = isStringAndValidId ? requestingPlayerId : myPlayerId;
+      if (players[currentTurn]?.id !== effectivePlayerId) { showToast("It's not your turn."); return; } // Not your turn
+      if (!isHost && !isStringAndValidId) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
           action: { type: 'passTurn', playerId: myPlayerId }
@@ -449,8 +481,13 @@ export const GameProvider = ({ children }) => {
     if (gameStage !== 'playing' || showColorPicker) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
-      if (!isHost) {
+      const isStringAndValidId = typeof requestingPlayerId === 'string' && requestingPlayerId.startsWith('p');
+      const effectivePlayerId = isStringAndValidId ? requestingPlayerId : myPlayerId;
+      if (players[currentTurn]?.id !== effectivePlayerId) {
+        showToast("It's not your turn.");
+        return;
+      }
+      if (!isHost && !isStringAndValidId) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
           action: { type: 'playCard', cardId, playerId: myPlayerId }
@@ -546,59 +583,17 @@ export const GameProvider = ({ children }) => {
         effectText = ` Direction changed to ${newDirection.toUpperCase()}!`;
       }
     } else if (card.value === CARD_VALUES.DRAW_TWO) {
-      skipCount = 2;
-      const targetPlayerIndex = getNextTurn(currentTurn, direction, players.length);
-      const targetPlayer = players[targetPlayerIndex];
-      
-      effectText = ` ${targetPlayer.name} draws 2 cards and is SKIPPED!`;
-      
-      // Force draw cards
-      let updatedDrawPile = [...drawPile];
-      let dealCards = [];
-      for (let i = 0; i < 2; i++) {
-        if (updatedDrawPile.length === 0) {
-          const reshuffled = reshuffleDeck(updatedDiscardPile);
-          updatedDrawPile = reshuffled.draw;
-        }
-        if (updatedDrawPile.length > 0) {
-          dealCards.push(updatedDrawPile.pop());
-        }
-      }
-
-      updatedPlayers[targetPlayerIndex] = {
-        ...updatedPlayers[targetPlayerIndex],
-        hand: [...updatedPlayers[targetPlayerIndex].hand, ...dealCards],
-        declaredUno: false // Reset UNO status
-      };
-
-      setDrawPile(updatedDrawPile);
+      const nextDrawCount = pendingDrawCount + 2;
+      setPendingDrawCount(nextDrawCount);
+      setPendingDrawType('draw2');
+      skipCount = 1;
+      effectText = ` Stacking! Next player must play Draw Two or draw ${nextDrawCount} cards.`;
     } else if (card.value === CARD_VALUES.WILD_DRAW_FOUR) {
-      skipCount = 2;
-      const targetPlayerIndex = getNextTurn(currentTurn, direction, players.length);
-      const targetPlayer = players[targetPlayerIndex];
-      
-      effectText = ` chosen color is ${chosenColor.toUpperCase()}. ${targetPlayer.name} draws 4 cards and is SKIPPED!`;
-
-      // Force draw cards
-      let updatedDrawPile = [...drawPile];
-      let dealCards = [];
-      for (let i = 0; i < 4; i++) {
-        if (updatedDrawPile.length === 0) {
-          const reshuffled = reshuffleDeck(updatedDiscardPile);
-          updatedDrawPile = reshuffled.draw;
-        }
-        if (updatedDrawPile.length > 0) {
-          dealCards.push(updatedDrawPile.pop());
-        }
-      }
-
-      updatedPlayers[targetPlayerIndex] = {
-        ...updatedPlayers[targetPlayerIndex],
-        hand: [...updatedPlayers[targetPlayerIndex].hand, ...dealCards],
-        declaredUno: false // Reset UNO status
-      };
-
-      setDrawPile(updatedDrawPile);
+      const nextDrawCount = pendingDrawCount + 4;
+      setPendingDrawCount(nextDrawCount);
+      setPendingDrawType('wild4');
+      skipCount = 1;
+      effectText = ` chosen color is ${chosenColor.toUpperCase()}. Stacking! Next player must play Wild Draw Four or draw ${nextDrawCount} cards.`;
     }
 
     addLog(`${activePlayer.name} played ${card.type === 'wild' ? 'Wild' : card.color.toUpperCase()} ${card.value.toUpperCase()}.${effectText}`);
@@ -651,8 +646,10 @@ export const GameProvider = ({ children }) => {
     if (!pendingWildCard) return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
-      if (!isHost) {
+      const isStringAndValidId = typeof requestingPlayerId === 'string' && requestingPlayerId.startsWith('p');
+      const effectivePlayerId = isStringAndValidId ? requestingPlayerId : myPlayerId;
+      if (players[currentTurn]?.id !== effectivePlayerId) { showToast("It's not your turn."); return; } // Not your turn
+      if (!isHost && !isStringAndValidId) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
           action: { type: 'selectWildColor', color, playerId: myPlayerId }
@@ -673,8 +670,10 @@ export const GameProvider = ({ children }) => {
     if (gameStage !== 'playing') return;
     
     if (isMultiplayer) {
-      if (players[currentTurn]?.id !== myPlayerId) { showToast("It's not your turn."); return; } // Not your turn
-      if (!isHost) {
+      const isStringAndValidId = typeof requestingPlayerId === 'string' && requestingPlayerId.startsWith('p');
+      const effectivePlayerId = isStringAndValidId ? requestingPlayerId : myPlayerId;
+      if (players[currentTurn]?.id !== effectivePlayerId) { showToast("It's not your turn."); return; } // Not your turn
+      if (!isHost && !isStringAndValidId) {
         socketRef.current.emit('emitPlayerAction', {
           roomCode,
           action: { type: 'declareUno', playerId: myPlayerId }
@@ -788,6 +787,8 @@ export const GameProvider = ({ children }) => {
     setDrawPile([]);
     setDiscardPile([]);
     setWinner(null);
+    setPendingDrawCount(0);
+    setPendingDrawType(null);
     setGameStage('setup');
     playSound('click');
   };
@@ -829,7 +830,9 @@ export const GameProvider = ({ children }) => {
     isHost,
     roomCode,
     myPlayerId,
-    isMultiplayer
+    isMultiplayer,
+    pendingDrawCount,
+    pendingDrawType
   };
 
   const initSocket = () => {
@@ -924,6 +927,8 @@ export const GameProvider = ({ children }) => {
       setUnoAlert(syncedState.unoAlert);
       setTimerValue(syncedState.timerValue);
       setMatchStats(syncedState.matchStats);
+      setPendingDrawCount(syncedState.pendingDrawCount || 0);
+      setPendingDrawType(syncedState.pendingDrawType || null);
     });
 
     socketInst.on('hostRequestRename', ({ playerId, newName }) => {
@@ -942,19 +947,19 @@ export const GameProvider = ({ children }) => {
 
       switch (action.type) {
         case 'playCard':
-          playCard(action.cardId);
+          playCard(action.cardId, action.playerId);
           break;
         case 'drawCard':
-          drawCard();
+          drawCard(action.playerId);
           break;
         case 'passTurn':
-          passTurn();
+          passTurn(action.playerId);
           break;
         case 'selectWildColor':
-          selectWildColor(action.color);
+          selectWildColor(action.color, action.playerId);
           break;
         case 'declareUno':
-          declareUno();
+          declareUno(action.playerId);
           break;
         default:
           break;
@@ -1019,6 +1024,30 @@ export const GameProvider = ({ children }) => {
     setGameStage('setup');
   };
 
+  // Keep socket listeners in sync with the latest React state to avoid stale closures
+  useEffect(() => {
+    if (socket && isMultiplayer) {
+      setupSocketListeners(socket);
+    }
+  }, [
+    socket,
+    isMultiplayer,
+    players,
+    currentTurn,
+    drawPile,
+    discardPile,
+    direction,
+    currentColor,
+    winner,
+    showColorPicker,
+    pendingWildCard,
+    hasDrawnThisTurn,
+    drawnCard,
+    lobbyPlayers,
+    gameStage,
+    isHost
+  ]);
+
   // Broadcast host state to all clients in the room
   useEffect(() => {
     if (isMultiplayer && isHost && socketRef.current) {
@@ -1041,7 +1070,9 @@ export const GameProvider = ({ children }) => {
           drawnCard,
           unoAlert,
           timerValue,
-          matchStats
+          matchStats,
+          pendingDrawCount,
+          pendingDrawType
         }
       });
     }
@@ -1050,7 +1081,7 @@ export const GameProvider = ({ children }) => {
     gameStage, lobbyPlayers, players, drawPile, discardPile,
     currentTurn, direction, currentColor, winner, moveHistory,
     showColorPicker, pendingWildCard, hasDrawnThisTurn, drawnCard,
-    unoAlert, timerValue, matchStats
+    unoAlert, timerValue, matchStats, pendingDrawCount, pendingDrawType
   ]);
 
   useEffect(() => {
@@ -1090,6 +1121,8 @@ export const GameProvider = ({ children }) => {
         multiplayerError,
         setMultiplayerError,
         toast,
+        pendingDrawCount,
+        pendingDrawType,
         
         // Functions
         updateSettings,

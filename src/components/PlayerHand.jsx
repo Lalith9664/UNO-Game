@@ -11,7 +11,10 @@ export const PlayerHand = ({
   playerName,
   onRename,
   cardSize = 'md',
-  isLandscapeMobile = false
+  isLandscapeMobile = false,
+  pendingDrawCount = 0,
+  pendingDrawType = null,
+  gameStage = 'playing'
 }) => {
   return (
     <div className={`w-full flex flex-col items-center transition-all duration-300 ${!isCurrentTurn ? 'opacity-100' : ''}`}>
@@ -67,8 +70,21 @@ export const PlayerHand = ({
             ${isLandscapeMobile ? 'pt-2 pb-0.5 px-2' : 'pt-4 pb-1.5 px-3'}
           `}>
             {hand.map((card, index) => {
-              // Calculate playability - only playable if it's the current player's turn
-              const playable = isCurrentTurn && isValidMove(card, topCard, currentColor, hand);
+              // Calculate playability - only playable if it's the current player's turn and the match is active
+              let playable = gameStage === 'playing' && isCurrentTurn && isValidMove(card, topCard, currentColor, hand);
+
+              // Apply stacking house rule validation:
+              if (isCurrentTurn && pendingDrawCount > 0) {
+                if (pendingDrawType === 'draw2') {
+                  // Only Draw Two (+2) cards can stack
+                  playable = card.value === 'draw2';
+                } else if (pendingDrawType === 'wild4') {
+                  // Only Wild Draw Four (+4) cards can stack
+                  playable = card.value === 'wild4';
+                } else {
+                  playable = false;
+                }
+              }
 
               // Overlap class based on size to stack cards horizontally
               const overlapClass = cardSize === 'xs'

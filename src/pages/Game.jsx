@@ -37,6 +37,8 @@ export const Game = () => {
     myPlayerId,
     isMultiplayer,
     isHost,
+    pendingDrawCount,
+    pendingDrawType,
 
     addLobbyPlayer,
     removeLobbyPlayer,
@@ -335,7 +337,7 @@ export const Game = () => {
   };
 
   return (
-    <div className={`min-h-screen relative flex flex-col ${gameStage === 'playing' || (gameStage === 'setup' && isLandscapeMobile) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+    <div className={`min-h-screen relative flex flex-col ${gameStage === 'playing' || gameStage === 'ended' || (gameStage === 'setup' && isLandscapeMobile) ? 'overflow-hidden' : 'overflow-y-auto'}`}>
 
       {/* UNO LOBBY / SETUP SCREEN */}
       {gameStage === 'setup' && (
@@ -499,7 +501,7 @@ export const Game = () => {
       )}
 
       {/* ACTIVE UNO GAME BOARD SCREEN */}
-      {gameStage === 'playing' && (
+      {(gameStage === 'playing' || gameStage === 'ended') && (
         <div className={`flex-1 flex flex-col justify-between relative ${
           isLandscapeMobile 
             ? 'p-1 h-screen max-h-screen overflow-hidden' 
@@ -583,9 +585,10 @@ export const Game = () => {
               {/* Draw Pile stack */}
               <DrawPile
                 cardCount={drawPile.length}
-                canDraw={isMyTurn && !hasDrawnThisTurn && !showColorPicker}
+                canDraw={gameStage === 'playing' && isMyTurn && !hasDrawnThisTurn && !showColorPicker}
                 onDraw={drawCard}
                 size={isLandscapeMobile ? 'xs' : 'md'}
+                pendingDrawCount={pendingDrawCount}
               />
 
               {/* Discard Pile Stack */}
@@ -597,7 +600,7 @@ export const Game = () => {
             </div>
             
             {/* Draw Decision Helper banner when player drew playable card */}
-            {hasDrawnThisTurn && drawnCard && (
+            {isMyTurn && hasDrawnThisTurn && drawnCard && (
               <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-35 bg-slate-900/95 backdrop-blur border border-white/10 px-5 py-3 rounded-2xl flex items-center gap-4 shadow-2xl shadow-black/80">
                 <span className="text-xs text-slate-300 font-semibold">
                   Drew playable card:
@@ -646,6 +649,9 @@ export const Game = () => {
               }
               cardSize={isLandscapeMobile ? 'xs' : 'md'}
               isLandscapeMobile={isLandscapeMobile}
+              pendingDrawCount={pendingDrawCount}
+              pendingDrawType={pendingDrawType}
+              gameStage={gameStage}
             />
           </div>
 
@@ -714,7 +720,7 @@ export const Game = () => {
 
           {/* Color picking dropdown overlay modal */}
           <ColorPickerModal
-            isOpen={showColorPicker}
+            isOpen={showColorPicker && isMyTurn}
             playerName={players[currentTurn]?.name || ''}
             isWildDrawFour={pendingWildCard?.value === 'wild4'}
             onSelectColor={selectWildColor}
@@ -725,7 +731,7 @@ export const Game = () => {
             winner={winner}
             matchStats={matchStats}
             onPlayAgain={playAgain}
-            onBackToHome={quitToLobby}
+            onBackToHome={handleBackToHome}
           />
 
         </div>

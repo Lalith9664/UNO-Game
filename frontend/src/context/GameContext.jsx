@@ -838,8 +838,9 @@ export const GameProvider = ({ children }) => {
   const initSocket = () => {
     if (socketRef.current) return socketRef.current;
     
-    console.log('Initializing socket connection to:', window.location.origin);
-    const newSocket = io(window.location.origin, {
+    const backendUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+    console.log('Initializing socket connection to:', backendUrl);
+    const newSocket = io(backendUrl, {
       autoConnect: true,
       transports: ['websocket', 'polling']
     });

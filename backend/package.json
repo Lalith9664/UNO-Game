@@ -8,10 +8,12 @@
     "server": "node server.cjs",
     "build": "vite build",
     "lint": "eslint .",
+    "start": "node server.cjs",
     "preview": "vite preview"
   },
   "dependencies": {
     "concurrently": "^10.0.3",
+    "cors": "^2.8.6",
     "express": "^5.2.1",
     "lucide-react": "^1.21.0",
     "react": "^19.2.6",
@@ -33,5 +35,10 @@
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.19",
     "vite": "^8.0.12"
-  }
+  },
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
 }

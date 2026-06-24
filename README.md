@@ -1,16 +1,66 @@
-# React + Vite
+# UNO Game
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A multiplayer online UNO game built with React, Vite, Tailwind CSS, Express, and Socket.io.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```text
+├── backend/            # Express & Socket.io server
+│   ├── package.json
+│   └── server.cjs
+└── frontend/           # React frontend
+    ├── src/
+    ├── public/
+    ├── package.json
+    └── vite.config.js
+```
 
-## React Compiler
+## Getting Started
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Follow the instructions below to run the backend and frontend services.
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Running the Backend Server
+
+The backend handles matchmaking, game state synchronization, and room management via Socket.io.
+
+1. Navigate to the `backend` directory:
+   ```bash
+   cd backend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the server:
+   ```bash
+   npm start
+   ```
+
+The backend server runs on `http://localhost:3001` by default.
+
+---
+
+### 2. Running the Frontend Development Server
+
+The frontend provides the interactive user interface and local rule processing engine.
+
+1. Navigate to the `frontend` directory:
+   ```bash
+   cd frontend
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the Vite development server:
+   ```bash
+   npm run dev
+   ```
+
+The frontend app will be available at `http://localhost:5173`.

@@ -737,32 +737,34 @@ export const Game = () => {
         </div>
       )}
 
-      {/* Mobile Portrait Orientation Lock Overlay */}
-      <div className="hidden md:portrait:hidden portrait:flex fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex-col items-center justify-center p-6 text-center">
-        <div className="glass-panel max-w-xs p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center gap-6">
-          {/* Animated phone rotation icon */}
-          <div className="relative w-16 h-24 border-4 border-slate-400 rounded-2xl flex items-center justify-center animate-rotate-device">
-            {/* Phone screen details */}
-            <div className="w-1.5 h-1.5 bg-slate-400 rounded-full absolute bottom-1.5"></div>
-            <div className="w-8 h-1 bg-slate-400 rounded absolute top-2"></div>
+      {/* Mobile Portrait Orientation Lock Overlay — only during active gameplay */}
+      {(gameStage === 'playing' || gameStage === 'ended') && (
+        <div className="hidden md:portrait:hidden portrait:flex fixed inset-0 z-[9999] bg-slate-950/95 backdrop-blur-xl flex-col items-center justify-center p-6 text-center">
+          <div className="glass-panel max-w-xs p-8 rounded-3xl border border-white/10 shadow-2xl flex flex-col items-center gap-6">
+            {/* Animated phone rotation icon */}
+            <div className="relative w-16 h-24 border-4 border-slate-400 rounded-2xl flex items-center justify-center animate-rotate-device">
+              {/* Phone screen details */}
+              <div className="w-1.5 h-1.5 bg-slate-400 rounded-full absolute bottom-1.5"></div>
+              <div className="w-8 h-1 bg-slate-400 rounded absolute top-2"></div>
+              
+              {/* Rotation arrow */}
+              <div className="absolute -inset-4 border-2 border-dashed border-amber-400 rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
+            </div>
             
-            {/* Rotation arrow */}
-            <div className="absolute -inset-4 border-2 border-dashed border-amber-400 rounded-full animate-spin" style={{ animationDuration: '8s' }}></div>
-          </div>
-          
-          <div className="flex flex-col gap-2">
-            <h3 className="text-xl font-black text-white tracking-wide uppercase">
-              Tilt Your Screen
-            </h3>
-            <p className="text-xs text-slate-405 leading-relaxed">
-              Please rotate your device to landscape mode to play.
-            </p>
+            <div className="flex flex-col gap-2">
+              <h3 className="text-xl font-black text-white tracking-wide uppercase">
+                Tilt Your Screen
+              </h3>
+              <p className="text-xs text-slate-405 leading-relaxed">
+                Please rotate your device to landscape mode to play.
+              </p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Mobile Landscape Fullscreen Prompt Overlay */}
-      {isLandscapeMobile && !isFullscreen && (
+      {/* Mobile Landscape Fullscreen Prompt Overlay — only during active gameplay */}
+      {isLandscapeMobile && !isFullscreen && (gameStage === 'playing' || gameStage === 'ended') && (
         <div 
           onClick={toggleFullscreen}
           className="fixed inset-0 z-[10000] bg-slate-950/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center cursor-pointer select-none"

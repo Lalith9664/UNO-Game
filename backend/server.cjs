@@ -181,6 +181,46 @@ io.on('connection', (socket) => {
     io.to(room.hostSocketId).emit('processPlayerAction', action);
   });
 
+  // 5b. Explicit leave (called before disconnect)
+  socket.on('leaveRoom', ({ roomCode }) => {
+    const code = roomCode?.toUpperCase().trim();
+    const room = rooms[code];
+    if (!room) return;
+
+    const playerIndex = room.players.findIndex(p => p.socketId === socket.id);
+    if (playerIndex === -1) return;
+
+    const leavingPlayer = room.players[playerIndex];
+    room.players.splice(playerIndex, 1);
+    socket.leave(code);
+
+    console.log(`Player ${leavingPlayer.name} explicitly left room ${code}`);
+
+    if (room.players.length === 0) {
+      delete rooms[code];
+      console.log(`Room ${code} closed (empty)`);
+      return;
+    }
+
+    // Re-index avatars
+    room.players.forEach((p, idx) => {
+      p.avatarGradient = AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length];
+    });
+
+    if (leavingPlayer.isHost) {
+      const newHost = room.players[0];
+      newHost.isHost = true;
+      room.hostSocketId = newHost.socketId;
+      room.hostPlayerId = newHost.id;
+      console.log(`Host left! New host of room ${code} is ${newHost.name}`);
+      // Emit playerLeft first so the host is removed from lobby, then assign new host
+      io.to(code).emit('playerLeft', { playerId: leavingPlayer.id, players: room.players });
+      io.to(code).emit('newHostAssigned', { hostPlayerId: newHost.id, players: room.players });
+    } else {
+      io.to(code).emit('playerLeft', { playerId: leavingPlayer.id, players: room.players });
+    }
+  });
+
   // 6. Handle Disconnect / Leave
   socket.on('disconnect', () => {
     console.log(`Socket disconnected: ${socket.id}`);
@@ -194,7 +234,7 @@ io.on('connection', (socket) => {
         const leavingPlayer = room.players[playerIndex];
         room.players.splice(playerIndex, 1);
         
-        console.log(`Player ${leavingPlayer.name} left room ${code}`);
+        console.log(`Player ${leavingPlayer.name} disconnected from room ${code}`);
 
         // If no players left, delete room
         if (room.players.length === 0) {
@@ -203,21 +243,23 @@ io.on('connection', (socket) => {
           return;
         }
 
+        // Always re-index avatar gradients
+        room.players.forEach((p, idx) => {
+          p.avatarGradient = AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length];
+        });
+
+        // Notify remaining players the player left (removes them from lobby)
+        io.to(code).emit('playerLeft', { playerId: leavingPlayer.id, players: room.players });
+
         // If the host left, assign a new host
         if (leavingPlayer.isHost) {
-          const newHost = room.players[0]; // first remaining player
+          const newHost = room.players[0];
           newHost.isHost = true;
           room.hostSocketId = newHost.socketId;
           room.hostPlayerId = newHost.id;
           
-          console.log(`Host left! New host of room ${code} is ${newHost.name}`);
+          console.log(`Host disconnected! New host of room ${code} is ${newHost.name}`);
           io.to(code).emit('newHostAssigned', { hostPlayerId: newHost.id, players: room.players });
-        } else {
-          // Re-index remaining avatar gradients to keep colors clean
-          room.players.forEach((p, idx) => {
-            p.avatarGradient = AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length];
-          });
-          io.to(code).emit('playerLeft', { playerId: leavingPlayer.id, players: room.players });
         }
       }
     });

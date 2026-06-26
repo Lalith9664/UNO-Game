@@ -1162,6 +1162,10 @@ export const GameProvider = ({ children }) => {
 
   const leaveOnlineRoom = () => {
     if (socketRef.current) {
+      // Tell the server explicitly so other clients update immediately
+      if (stateRef.current.roomCode) {
+        socketRef.current.emit('leaveRoom', { roomCode: stateRef.current.roomCode });
+      }
       socketRef.current.disconnect();
       socketRef.current = null;
       setSocket(null);

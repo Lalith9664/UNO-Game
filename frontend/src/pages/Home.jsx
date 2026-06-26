@@ -118,11 +118,6 @@ export const Home = () => {
           }`}>
             UNO
           </h1>
-          {!isLandscape && (
-            <span className="absolute -bottom-2 right-1 text-xs font-black text-white/95 px-2 py-0.5 rounded-md bg-gradient-to-r from-red-500 to-amber-500 tracking-widest uppercase shadow">
-              VITE
-            </span>
-          )}
         </div>
 
         {/* Dynamic Screens */}

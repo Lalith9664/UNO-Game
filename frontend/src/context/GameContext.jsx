@@ -139,42 +139,192 @@ export const GameProvider = ({ children }) => {
   const handleTimeout = () => {
     if (isMultiplayer && !isHost) return; // Only host handles timeout
     const activePlayer = players[currentTurn];
-    addLog(`${activePlayer.name} ran out of time!`);
-    
-    // Draw card automatically
-    let cardDrawn = null;
+    addLog(`⏰ ${activePlayer.name} ran out of time! Auto-acting...`);
+
     let updatedDrawPile = [...drawPile];
     let updatedDiscardPile = [...discardPile];
+    let updatedPlayers = players.map(p => ({ ...p }));
 
-    if (updatedDrawPile.length === 0) {
-      const reshuffled = reshuffleDeck(updatedDiscardPile);
-      updatedDrawPile = reshuffled.draw;
-      updatedDiscardPile = reshuffled.discard;
+    const ensureDrawPile = () => {
+      if (updatedDrawPile.length === 0) {
+        const reshuffled = reshuffleDeck(updatedDiscardPile);
+        updatedDrawPile = reshuffled.draw;
+        updatedDiscardPile = reshuffled.discard;
+      }
+    };
+
+    // ── Case 1: There is a pending draw stack (+2 or +4) ──────────────────────
+    if (pendingDrawCount > 0) {
+      // Check if player has a matching card to stack
+      const stackValue = pendingDrawType === 'draw2' ? CARD_VALUES.DRAW_TWO : CARD_VALUES.WILD_DRAW_FOUR;
+      const stackCard = updatedPlayers[currentTurn].hand.find(c => c.value === stackValue);
+
+      if (stackCard) {
+        // Auto-play the stacking card
+        addLog(`${activePlayer.name} auto-stacks a ${stackValue === CARD_VALUES.DRAW_TWO ? '+2' : '+4'}!`);
+        playSound(stackCard.type === 'wild' ? 'wild' : 'play');
+
+        // Remove from hand
+        updatedPlayers[currentTurn].hand = updatedPlayers[currentTurn].hand.filter(c => c.id !== stackCard.id);
+        updatedPlayers[currentTurn].stats.cardsPlayed += 1;
+        updatedPlayers[currentTurn].stats.turnsTaken += 1;
+
+        const newPendingCount = pendingDrawCount + (stackValue === CARD_VALUES.DRAW_TWO ? 2 : 4);
+
+        let playedCard = { ...stackCard };
+        // For Wild Draw Four, auto-pick the most frequent color in hand
+        let chosenColor = null;
+        if (stackCard.type === CARD_TYPES.WILD) {
+          const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
+          updatedPlayers[currentTurn].hand.forEach(c => { if (colorCounts[c.color] !== undefined) colorCounts[c.color]++; });
+          chosenColor = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])[0][0];
+          playedCard.color = chosenColor;
+        }
+
+        updatedDiscardPile = [...updatedDiscardPile, playedCard];
+
+        setPlayers(updatedPlayers);
+        setDrawPile(updatedDrawPile);
+        setDiscardPile(updatedDiscardPile);
+        setPendingDrawCount(newPendingCount);
+        setPendingDrawType(pendingDrawType);
+        setDirection(direction);
+        setCurrentColor(chosenColor || stackCard.color);
+        setHasDrawnThisTurn(false);
+        setDrawnCard(null);
+        setMatchStats(prev => ({ ...prev, totalTurns: prev.totalTurns + 1 }));
+
+        // Advance to next player
+        const nextIdx = getNextTurn(currentTurn, direction, updatedPlayers.length, 1);
+        setCurrentTurn(nextIdx);
+        addLog(`Stack is now +${newPendingCount}! Next player must stack or draw.`);
+        return;
+
+      } else {
+        // No stacking card — auto-draw all penalty cards
+        addLog(`${activePlayer.name} has no stacking card. Drawing ${pendingDrawCount} cards!`);
+        playSound('draw');
+
+        const drawnCards = [];
+        for (let i = 0; i < pendingDrawCount; i++) {
+          ensureDrawPile();
+          if (updatedDrawPile.length > 0) drawnCards.push(updatedDrawPile.pop());
+        }
+
+        updatedPlayers[currentTurn].hand = [...updatedPlayers[currentTurn].hand, ...drawnCards];
+        updatedPlayers[currentTurn].declaredUno = false;
+
+        setPlayers(updatedPlayers);
+        setDrawPile(updatedDrawPile);
+        setDiscardPile(updatedDiscardPile);
+        setPendingDrawCount(0);
+        setPendingDrawType(null);
+        setHasDrawnThisTurn(false);
+        setDrawnCard(null);
+        setMatchStats(prev => ({ ...prev, totalTurns: prev.totalTurns + 1 }));
+
+        addLog(`${activePlayer.name} drew ${drawnCards.length} penalty cards and loses their turn.`);
+
+        const nextIdx = getNextTurn(currentTurn, direction, updatedPlayers.length, 1);
+        setCurrentTurn(nextIdx);
+        return;
+      }
     }
 
-    if (updatedDrawPile.length > 0) {
-      cardDrawn = updatedDrawPile.pop();
-      playSound('draw');
-      
-      const updatedPlayers = players.map((player, idx) => {
-        if (idx === currentTurn) {
-          return {
-            ...player,
-            hand: [...player.hand, cardDrawn],
-            declaredUno: false // reset Uno if drawing cards
-          };
-        }
-        return player;
-      });
+    // ── Case 2: No pending draw — try to auto-play a valid card ───────────────
+    const topCard = updatedDiscardPile[updatedDiscardPile.length - 1];
+    const hand = updatedPlayers[currentTurn].hand;
+
+    // Prefer non-wild cards first, then wilds
+    const validCards = hand.filter(c => isValidMove(c, topCard, currentColor, hand));
+    const nonWildValid = validCards.filter(c => c.type !== CARD_TYPES.WILD);
+    const cardToPlay = nonWildValid.length > 0 ? nonWildValid[0] : validCards[0];
+
+    if (cardToPlay) {
+      addLog(`${activePlayer.name} auto-plays ${cardToPlay.type === 'wild' ? 'Wild' : cardToPlay.color.toUpperCase() + ' ' + cardToPlay.value.toUpperCase()}.`);
+      playSound(cardToPlay.type === 'wild' ? 'wild' : 'play');
+
+      // Remove from hand
+      updatedPlayers[currentTurn].hand = updatedPlayers[currentTurn].hand.filter(c => c.id !== cardToPlay.id);
+      updatedPlayers[currentTurn].stats.cardsPlayed += 1;
+      updatedPlayers[currentTurn].stats.turnsTaken += 1;
+
+      let playedCard = { ...cardToPlay };
+      let chosenColor = cardToPlay.color;
+
+      // For wilds, pick most frequent color in remaining hand
+      if (cardToPlay.type === CARD_TYPES.WILD) {
+        const colorCounts = { red: 0, blue: 0, green: 0, yellow: 0 };
+        updatedPlayers[currentTurn].hand.forEach(c => { if (colorCounts[c.color] !== undefined) colorCounts[c.color]++; });
+        chosenColor = Object.entries(colorCounts).sort((a, b) => b[1] - a[1])[0][0];
+        playedCard.color = chosenColor;
+      }
+
+      updatedDiscardPile = [...updatedDiscardPile, playedCard];
+
+      // Check win
+      if (updatedPlayers[currentTurn].hand.length === 0) {
+        setPlayers(updatedPlayers);
+        setDiscardPile(updatedDiscardPile);
+        handleWin(updatedPlayers[currentTurn]);
+        return;
+      }
+
+      // Compute effects (skip/reverse/draw2/wild4)
+      let skipCount = 1;
+      let newDirection = direction;
+      let newPendingCount = pendingDrawCount;
+      let newPendingType = pendingDrawType;
+      let nextColor = chosenColor;
+
+      if (cardToPlay.value === CARD_VALUES.SKIP) {
+        skipCount = 2;
+      } else if (cardToPlay.value === CARD_VALUES.REVERSE) {
+        if (updatedPlayers.length === 2) { skipCount = 2; }
+        else { newDirection = direction === 'clockwise' ? 'counter-clockwise' : 'clockwise'; }
+      } else if (cardToPlay.value === CARD_VALUES.DRAW_TWO) {
+        newPendingCount = pendingDrawCount + 2;
+        newPendingType = 'draw2';
+      } else if (cardToPlay.value === CARD_VALUES.WILD_DRAW_FOUR) {
+        newPendingCount = pendingDrawCount + 4;
+        newPendingType = 'wild4';
+      }
 
       setPlayers(updatedPlayers);
       setDrawPile(updatedDrawPile);
       setDiscardPile(updatedDiscardPile);
-      addLog(`${activePlayer.name} drew 1 card.`);
+      setDirection(newDirection);
+      setCurrentColor(nextColor);
+      setPendingDrawCount(newPendingCount);
+      setPendingDrawType(newPendingType);
+      setHasDrawnThisTurn(false);
+      setDrawnCard(null);
+      setMatchStats(prev => ({ ...prev, totalTurns: prev.totalTurns + 1 }));
+
+      const nextIdx = getNextTurn(currentTurn, newDirection, updatedPlayers.length, skipCount);
+      setCurrentTurn(nextIdx);
+      return;
     }
 
-    // Auto-advance turn
-    passTurn(activePlayer.id);
+    // ── Case 3: No valid card — auto-draw 1 card and pass turn ────────────────
+    ensureDrawPile();
+    if (updatedDrawPile.length > 0) {
+      const drawnCard = updatedDrawPile.pop();
+      playSound('draw');
+      updatedPlayers[currentTurn].hand = [...updatedPlayers[currentTurn].hand, drawnCard];
+      updatedPlayers[currentTurn].declaredUno = false;
+      addLog(`${activePlayer.name} had no valid card and auto-drew 1 card.`);
+    }
+
+    setPlayers(updatedPlayers);
+    setDrawPile(updatedDrawPile);
+    setDiscardPile(updatedDiscardPile);
+    setHasDrawnThisTurn(false);
+    setDrawnCard(null);
+    setMatchStats(prev => ({ ...prev, totalTurns: prev.totalTurns + 1 }));
+
+    const nextIdx = getNextTurn(currentTurn, direction, updatedPlayers.length, 1);
+    setCurrentTurn(nextIdx);
   };
 
   // Add event log helper

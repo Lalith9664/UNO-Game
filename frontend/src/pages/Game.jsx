@@ -420,8 +420,8 @@ export const Game = () => {
               </form>
             )}
 
-            <div className={`flex flex-col ${
-              isLandscapeMobile ? 'gap-0.5' : 'gap-2 sm:gap-3.5 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar'
+            <div className={`flex flex-col overflow-y-auto pr-1 custom-scrollbar ${
+              isLandscapeMobile ? 'gap-0.5 max-h-[100px]' : 'gap-2 sm:gap-3.5 max-h-[35vh]'
             }`}>
               {lobbyPlayers.map((player, idx) => (
                 <div

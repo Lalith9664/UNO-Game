@@ -342,12 +342,12 @@ export const Game = () => {
       {/* UNO LOBBY / SETUP SCREEN */}
       {gameStage === 'setup' && (
         <div className={`flex-1 flex items-center justify-center relative ${
-          isLandscapeMobile ? 'p-1 h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] overflow-hidden' : 'p-2 sm:p-4 py-2 sm:py-8'
+          isLandscapeMobile ? 'p-1 h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] overflow-y-auto' : 'p-2 sm:p-4 py-2 sm:py-8'
         }`}>
-          <div className={`glass-panel w-full border border-white/10 shadow-2xl flex flex-col relative overflow-hidden ${
+          <div className={`glass-panel w-full border border-white/10 shadow-2xl flex flex-col relative ${
             isLandscapeMobile 
-              ? 'rounded-xl max-w-sm p-3 gap-2 max-h-[calc(100vh-60px)]' 
-              : 'rounded-[20px] sm:rounded-3xl max-w-2xl p-3 sm:p-6 md:p-10 gap-3 sm:gap-8'
+              ? 'rounded-xl max-w-sm p-3 gap-1.5 max-h-[calc(100vh-60px)] overflow-y-auto' 
+              : 'rounded-[20px] sm:rounded-3xl max-w-2xl p-3 sm:p-6 md:p-10 gap-3 sm:gap-8 overflow-hidden'
           }`}>
             {/* Background blobs */}
             <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-red-500/10 blur-[80px]"></div>
@@ -423,7 +423,7 @@ export const Game = () => {
             )}
 
             <div className={`flex flex-col ${
-              isLandscapeMobile ? 'gap-0.5 overflow-hidden' : 'gap-2 sm:gap-3.5 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar'
+              isLandscapeMobile ? 'gap-0.5 max-h-[30vh] overflow-y-auto custom-scrollbar flex-shrink-0' : 'gap-2 sm:gap-3.5 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar'
             }`}>
               {lobbyPlayers.map((player, idx) => (
                 <div

@@ -13,12 +13,12 @@ export const Home = () => {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [isLandscape, setIsLandscape] = useState(
-    typeof window !== 'undefined' ? (window.innerWidth > window.innerHeight && window.innerHeight < 500) : false
+    typeof window !== 'undefined' ? (window.innerWidth > window.innerHeight && window.innerHeight < 650) : false
   );
 
   useEffect(() => {
     const handleResize = () => {
-      setIsLandscape(window.innerWidth > window.innerHeight && window.innerHeight < 500);
+      setIsLandscape(window.innerWidth > window.innerHeight && window.innerHeight < 650);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);

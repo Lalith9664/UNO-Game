@@ -342,31 +342,29 @@ export const Game = () => {
       {/* UNO LOBBY / SETUP SCREEN */}
       {gameStage === 'setup' && (
         <div className={`flex-1 flex items-center justify-center relative ${
-          isLandscapeMobile ? 'p-1 h-[calc(100vh-48px)] max-h-[calc(100vh-48px)] overflow-y-auto' : 'p-2 sm:p-4 py-2 sm:py-8'
+          isLandscapeMobile ? 'p-1 h-screen max-h-screen overflow-hidden' : 'p-2 sm:p-4 py-2 sm:py-8'
         }`}>
-          <div className={`glass-panel w-full border border-white/10 shadow-2xl flex flex-col relative ${
+          <div className={`glass-panel w-full border border-white/10 shadow-2xl flex flex-col relative overflow-hidden ${
             isLandscapeMobile 
-              ? 'rounded-xl max-w-sm p-3 gap-1.5 max-h-[calc(100vh-60px)] overflow-y-auto' 
-              : 'rounded-[20px] sm:rounded-3xl max-w-2xl p-3 sm:p-6 md:p-10 gap-3 sm:gap-8 overflow-hidden'
+              ? 'rounded-xl max-w-sm p-2 gap-1 max-h-[calc(100vh-16px)]' 
+              : 'rounded-[20px] sm:rounded-3xl max-w-2xl p-3 sm:p-6 md:p-10 gap-3 sm:gap-8'
           }`}>
             {/* Background blobs */}
             <div className="absolute -top-12 -left-12 w-48 h-48 rounded-full bg-red-500/10 blur-[80px]"></div>
             <div className="absolute -bottom-12 -right-12 w-48 h-48 rounded-full bg-amber-500/10 blur-[80px]"></div>
 
-            {/* Title */}
-            <div className="text-center flex flex-col items-center">
-              <h2 className={`font-black text-white tracking-wide uppercase flex items-center gap-2 ${
-                isLandscapeMobile ? 'text-sm' : 'text-xl sm:text-3xl'
-              }`}>
-                <Users className={`text-red-500 animate-pulse ${isLandscapeMobile ? 'h-3.5 w-3.5' : 'h-5 w-5 sm:h-7 sm:w-7'}`} />
-                <span>Player Setup Lobby</span>
-              </h2>
-              {!isLandscapeMobile && (
+            {/* Title — hidden in landscape to save space */}
+            {!isLandscapeMobile && (
+              <div className="text-center flex flex-col items-center">
+                <h2 className="font-black text-white tracking-wide uppercase flex items-center gap-2 text-xl sm:text-3xl">
+                  <Users className="text-red-500 animate-pulse h-5 w-5 sm:h-7 sm:w-7" />
+                  <span>Player Setup Lobby</span>
+                </h2>
                 <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5 sm:mt-1">
                   Configure names and add players (2 to {settings.playerLimit} players)
                 </p>
-              )}
-            </div>
+              </div>
+            )}
 
             {isMultiplayer ? (
               <div className={`flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 shadow-inner ${
@@ -396,7 +394,7 @@ export const Game = () => {
                   )}
                 </div>
               </div>
-            ) : (
+) : (
               /* Add Player Input */
               <form onSubmit={handleAddPlayer} className="flex gap-2 sm:gap-3">
                 <input
@@ -406,14 +404,14 @@ export const Game = () => {
                   maxLength={16}
                   onChange={(e) => setNewPlayerName(e.target.value)}
                   className={`flex-1 glass-input ${
-                    isLandscapeMobile ? 'py-1 px-2 rounded-lg text-[10px]' : 'py-1.5 px-3 sm:py-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm'
+                    isLandscapeMobile ? 'py-0.5 px-2 rounded-lg text-[10px]' : 'py-1.5 px-3 sm:py-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm'
                   }`}
                 />
                 <button
                   type="submit"
                   disabled={lobbyPlayers.length >= settings.playerLimit}
                   className={`bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-650 hover:to-amber-650 text-white font-extrabold shadow-md disabled:opacity-30 transition-all flex items-center gap-1.5 uppercase tracking-wider shrink-0 ${
-                    isLandscapeMobile ? 'text-[8px] px-2 py-1 rounded-lg' : 'text-[10px] sm:text-xs px-3 py-1.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl'
+                    isLandscapeMobile ? 'text-[8px] px-2 py-0.5 rounded-lg' : 'text-[10px] sm:text-xs px-3 py-1.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl'
                   }`}
                 >
                   <UserPlus className={isLandscapeMobile ? 'h-3 w-3' : 'h-3.5 w-3.5 sm:h-4 sm:w-4'} />
@@ -423,18 +421,18 @@ export const Game = () => {
             )}
 
             <div className={`flex flex-col ${
-              isLandscapeMobile ? 'gap-0.5 max-h-[30vh] overflow-y-auto custom-scrollbar flex-shrink-0' : 'gap-2 sm:gap-3.5 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar'
+              isLandscapeMobile ? 'gap-0.5' : 'gap-2 sm:gap-3.5 max-h-[35vh] overflow-y-auto pr-1 custom-scrollbar'
             }`}>
               {lobbyPlayers.map((player, idx) => (
                 <div
                   key={player.id}
                   className={`flex items-center justify-between bg-white/3 border border-white/5 shadow-inner gap-1 ${
-                    isLandscapeMobile ? 'p-1 rounded-lg' : 'p-2.5 sm:p-3 rounded-xl sm:rounded-2xl gap-2'
+                    isLandscapeMobile ? 'p-0.5 rounded-md' : 'p-2.5 sm:p-3 rounded-xl sm:rounded-2xl gap-2'
                   }`}
                 >
                   <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                    <div className={`rounded-lg bg-gradient-to-br ${player.avatarGradient} flex items-center justify-center text-white font-extrabold shadow-inner shrink-0 ${
-                      isLandscapeMobile ? 'h-5 w-5 text-[8px]' : 'h-7 w-7 sm:h-8 sm:w-8 text-xs'
+                    <div className={`rounded-md bg-gradient-to-br ${player.avatarGradient} flex items-center justify-center text-white font-extrabold shadow-inner shrink-0 ${
+                      isLandscapeMobile ? 'h-4 w-4 text-[7px]' : 'h-7 w-7 sm:h-8 sm:w-8 text-xs'
                     }`}>
                       {idx + 1}
                     </div>
@@ -444,8 +442,8 @@ export const Game = () => {
                       maxLength={16}
                       disabled={isMultiplayer && player.id !== myPlayerId}
                       onChange={(e) => updateLobbyPlayerName(player.id, e.target.value)}
-                      className={`bg-transparent border-b border-transparent focus:border-white/20 px-1 py-0.5 text-white font-bold outline-none w-full min-w-0 flex-1 ${
-                        isLandscapeMobile ? 'text-[10px]' : 'text-xs sm:text-sm'
+                      className={`bg-transparent border-b border-transparent focus:border-white/20 px-1 text-white font-bold outline-none w-full min-w-0 flex-1 ${
+                        isLandscapeMobile ? 'text-[9px] py-0' : 'text-xs sm:text-sm py-0.5'
                       } ${isMultiplayer && player.id !== myPlayerId ? 'cursor-default' : 'cursor-text'}`}
                     />
                   </div>
@@ -453,10 +451,10 @@ export const Game = () => {
                   {!isMultiplayer && lobbyPlayers.length > 2 && (
                     <button
                       onClick={() => removeLobbyPlayer(player.id)}
-                      className="p-1 text-slate-450 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all shrink-0"
+                      className="p-0.5 text-slate-450 hover:text-red-400 hover:bg-red-500/10 rounded transition-all shrink-0"
                       title="Remove Player"
                     >
-                      <Trash2 className={isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'} />
+                      <Trash2 className={isLandscapeMobile ? 'h-2.5 w-2.5' : 'h-4 w-4'} />
                     </button>
                   )}
                 </div>
@@ -465,12 +463,12 @@ export const Game = () => {
 
             {/* Lobby Footer Details */}
             <div className={`flex border-t border-white/5 ${
-              isLandscapeMobile ? 'flex-row gap-2 pt-1.5 mt-0.5' : 'flex-col sm:flex-row gap-3 sm:gap-4 pt-6 mt-2'
+              isLandscapeMobile ? 'flex-row gap-1.5 pt-1 mt-0' : 'flex-col sm:flex-row gap-3 sm:gap-4 pt-6 mt-2'
             }`}>
               <button
                 onClick={handleBackToHome}
-                className={`flex-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold tracking-wide uppercase transition-all duration-300 border border-white/10 flex items-center justify-center gap-1.5 ${
-                  isLandscapeMobile ? 'py-2 text-[9px] rounded-lg' : 'py-2.5 sm:py-4 sm:rounded-2xl text-xs sm:text-sm'
+                className={`flex-1 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold tracking-wide uppercase transition-all duration-300 border border-white/10 flex items-center justify-center gap-1 ${
+                  isLandscapeMobile ? 'py-1.5 text-[9px] rounded-lg' : 'py-2.5 sm:py-4 sm:rounded-2xl text-xs sm:text-sm'
                 }`}
               >
                 <Home className={isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'} />
@@ -480,8 +478,8 @@ export const Game = () => {
               <button
                 onClick={() => { startGame(); setShowShuffleAnimation(true); }}
                 disabled={lobbyPlayers.length < 2 || (isMultiplayer && !isHost)}
-                className={`flex-grow-[2] rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-extrabold tracking-wider uppercase transition-all duration-300 shadow-lg shadow-emerald-500/15 flex items-center justify-center gap-1.5 border border-white/10 disabled:opacity-30 ${
-                  isLandscapeMobile ? 'py-2 text-[9px] rounded-lg' : 'py-2.5 sm:py-4 sm:rounded-2xl text-xs sm:text-sm'
+                className={`flex-grow-[2] rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-extrabold tracking-wider uppercase transition-all duration-300 shadow-lg shadow-emerald-500/15 flex items-center justify-center gap-1 border border-white/10 disabled:opacity-30 ${
+                  isLandscapeMobile ? 'py-1.5 text-[9px] rounded-lg' : 'py-2.5 sm:py-4 sm:rounded-2xl text-xs sm:text-sm'
                 }`}
               >
                 <RotateCcw className={`fill-white ${isLandscapeMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />

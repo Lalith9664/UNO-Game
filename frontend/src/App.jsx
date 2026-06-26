@@ -14,8 +14,8 @@ function AppLayout() {
   const { gameStage } = useUnoGame();
   const isGamePage = location.pathname === '/game';
 
-  // Show navbar everywhere except during active gameplay (playing/ended)
-  const showNavbar = !isGamePage || gameStage === 'setup';
+  // Hide navbar entirely on the game page (setup lobby + active game)
+  const showNavbar = !isGamePage;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col transition-colors duration-500 selection:bg-red-500 selection:text-white">

@@ -7,7 +7,7 @@ export const Home = () => {
   const navigate = useNavigate();
   const { gameStage, playSound, createOnlineRoom, joinOnlineRoom, leaveOnlineRoom } = useUnoGame();
 
-  const [playMode, setPlayMode] = useState('menu'); // 'menu' | 'select' | 'multiplayer'
+  const [playMode, setPlayMode] = useState('menu'); // 'menu' | 'multiplayer'
   const [playerName, setPlayerName] = useState(() => localStorage.getItem('uno_player_name') || '');
   const [targetRoomCode, setTargetRoomCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,12 +27,6 @@ export const Home = () => {
   const handleNavigate = (path) => {
     playSound('click');
     navigate(path);
-  };
-
-  const handleLocalPlay = () => {
-    playSound('click');
-    leaveOnlineRoom();
-    navigate('/game');
   };
 
   const handleCreateRoom = async () => {
@@ -124,7 +118,14 @@ export const Home = () => {
         {playMode === 'menu' && (
           <div className={`w-full flex flex-col ${isLandscape ? 'gap-2' : 'gap-4'}`}>
             <button
-              onClick={() => { playSound('click'); setPlayMode('select'); }}
+              onClick={() => {
+                playSound('click');
+                if (gameStage === 'playing') {
+                  navigate('/game');
+                } else {
+                  setPlayMode('multiplayer');
+                }
+              }}
               className={`group w-full rounded-2xl bg-gradient-to-r from-red-500 via-orange-500 to-amber-500 hover:from-red-650 hover:to-amber-650 text-white font-extrabold tracking-wider uppercase transition-all duration-300 shadow-lg shadow-orange-500/25 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-3 border border-white/10 ${
                 isLandscape ? 'py-2.5 text-sm rounded-xl' : 'py-4.5 text-lg'
               }`}
@@ -155,42 +156,6 @@ export const Home = () => {
           </div>
         )}
 
-        {playMode === 'select' && (
-          <div className={`w-full flex flex-col ${isLandscape ? 'gap-2' : 'gap-4'}`}>
-            <h3 className={`text-center font-extrabold text-white tracking-wide uppercase ${isLandscape ? 'text-xs mb-0.5' : 'text-sm mb-2'}`}>Select Play Mode</h3>
-            
-            <button
-              onClick={handleLocalPlay}
-              className={`w-full rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-650 hover:from-blue-600 hover:to-indigo-750 text-white font-bold tracking-wide uppercase transition-all duration-300 border border-white/10 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-3 shadow shadow-blue-500/10 ${
-                isLandscape ? 'py-2.5 text-xs rounded-xl' : 'py-4 text-base'
-              }`}
-            >
-              <Play className={`fill-white ${isLandscape ? 'h-3.5 w-3.5' : 'h-5 w-5'}`} />
-              <span>Local Pass & Play</span>
-            </button>
-
-            <button
-              onClick={() => { playSound('click'); setPlayMode('multiplayer'); }}
-              className={`w-full rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-650 hover:from-emerald-600 hover:to-teal-750 text-white font-bold tracking-wide uppercase transition-all duration-300 border border-white/10 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-3 shadow shadow-emerald-500/10 ${
-                isLandscape ? 'py-2.5 text-xs rounded-xl' : 'py-4 text-base'
-              }`}
-            >
-              <Globe className={`text-white ${isLandscape ? 'h-3.5 w-3.5' : 'h-5 w-5'}`} />
-              <span>Online Rooms</span>
-            </button>
-
-            <button
-              onClick={() => { playSound('click'); setPlayMode('menu'); }}
-              className={`w-full rounded-2xl bg-white/5 hover:bg-white/10 text-slate-350 hover:text-white font-bold tracking-wide uppercase transition-all duration-300 border border-white/10 hover:scale-[1.02] active:scale-98 flex items-center justify-center gap-2 ${
-                isLandscape ? 'py-2 text-[10px] rounded-xl' : 'py-4 text-sm'
-              }`}
-            >
-              <ArrowLeft className={isLandscape ? 'h-3 w-3' : 'h-4.5 w-4.5'} />
-              <span>Back</span>
-            </button>
-          </div>
-        )}
-
         {playMode === 'multiplayer' && (
           <div className={`w-full flex flex-col ${isLandscape ? 'gap-1.5' : 'gap-4'}`}>
             <h3 className={`text-center font-extrabold text-white tracking-wide uppercase ${isLandscape ? 'text-xs' : 'text-sm'}`}>Multiplayer Rooms</h3>
@@ -203,7 +168,7 @@ export const Home = () => {
 
             {/* Name Input */}
             <div className="relative w-full">
-              <User className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-450 ${isLandscape ? 'h-3 w-3' : 'h-4 w-4'}`} />
+              <User className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-455 ${isLandscape ? 'h-3 w-3' : 'h-4 w-4'}`} />
               <input
                 type="text"
                 placeholder="Enter your name..."
@@ -235,7 +200,7 @@ export const Home = () => {
             {/* Join Section */}
             <div className="flex gap-2">
               <div className="relative flex-1">
-                <Hash className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-450 ${isLandscape ? 'h-3 w-3' : 'h-4 w-4'}`} />
+                <Hash className={`absolute left-3 top-1/2 -translate-y-1/2 text-slate-455 ${isLandscape ? 'h-3 w-3' : 'h-4 w-4'}`} />
                 <input
                   type="text"
                   placeholder="Room Code"
@@ -260,7 +225,7 @@ export const Home = () => {
             </div>
 
             <button
-              onClick={() => { playSound('click'); setPlayMode('select'); setErrorMsg(''); }}
+              onClick={() => { playSound('click'); setPlayMode('menu'); setErrorMsg(''); }}
               disabled={loading}
               className={`w-full rounded-xl bg-white/3 hover:bg-white/5 text-slate-350 hover:text-white font-bold tracking-wide uppercase transition-all duration-300 border border-white/5 flex items-center justify-center gap-2 ${
                 isLandscape ? 'py-1 text-[10px]' : 'py-3.5 text-xs rounded-2xl'
@@ -276,7 +241,7 @@ export const Home = () => {
         {!isLandscape && (
           <div className="mt-8 flex items-center gap-1 text-[10px] text-slate-500 font-bold tracking-widest uppercase">
             <Sparkles className="h-3 w-3" />
-            <span>Local & Online 2-9 Players</span>
+            <span>Online Rooms 2-9 Players</span>
           </div>
         )}
       </div>

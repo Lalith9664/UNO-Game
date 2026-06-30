@@ -72,13 +72,13 @@ export const Game = () => {
     showToast,
   } = useUnoGame();
 
-  // In multiplayer: only the active player can interact
-  // In local: always allow (bottom shows current turn's hand)
-  const isMyTurn = isMultiplayer
-    ? players[currentTurn]?.id === myPlayerId
-    : true;
+  React.useEffect(() => {
+    if (!isMultiplayer) {
+      navigate("/");
+    }
+  }, [isMultiplayer, navigate]);
 
-  const [newPlayerName, setNewPlayerName] = useState("");
+  const isMyTurn = players[currentTurn]?.id === myPlayerId;
   const [showHistory, setShowHistory] = useState(false);
   const [showShuffleAnimation, setShowShuffleAnimation] = useState(false);
   const [windowWidth, setWindowWidth] = useState(
@@ -160,9 +160,9 @@ export const Game = () => {
     prevStageRef.current = gameStage;
   }, [gameStage]);
 
-  // Block keyboard shortcuts when it's not your turn in multiplayer
+  // Block keyboard shortcuts when it's not your turn
   React.useEffect(() => {
-    if (gameStage !== "playing" || !isMultiplayer) return;
+    if (gameStage !== "playing") return;
 
     const handleKeyDown = (e) => {
       if (!isMyTurn) {
@@ -177,21 +177,13 @@ export const Game = () => {
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [gameStage, isMultiplayer, isMyTurn]);
+  }, [gameStage, isMyTurn]);
 
-  const handleAddPlayer = (e) => {
-    e.preventDefault();
-    if (newPlayerName.trim()) {
-      addLobbyPlayer(newPlayerName.trim());
-      setNewPlayerName("");
-    }
-  };
+
 
   const handleBackToHome = () => {
     playSound("click");
-    if (isMultiplayer) {
-      leaveOnlineRoom();
-    }
+    leaveOnlineRoom();
     navigate("/");
   };
 
@@ -206,9 +198,7 @@ export const Game = () => {
     const totalPlayers = players.length;
     if (totalPlayers === 0) return null;
 
-    const myIndex = isMultiplayer
-      ? players.findIndex((p) => p.id === myPlayerId)
-      : -1;
+    const myIndex = players.findIndex((p) => p.id === myPlayerId);
     const activeUserIndex = myIndex !== -1 ? myIndex : 0;
 
     if (isLandscapeMobile) {
@@ -411,89 +401,51 @@ export const Game = () => {
                   players)
                 </p>
               </div>
-            )}
-
-            {isMultiplayer ? (
-              <div
-                className={`flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 shadow-inner ${
-                  isLandscapeMobile
-                    ? "flex-row gap-2 p-2 rounded-xl"
-                    : "flex-col sm:flex-row gap-4 p-4.5"
-                }`}
-              >
-                <div className="flex flex-col gap-0.5">
-                  <span
-                    className={`text-slate-400 font-bold uppercase tracking-wider ${isLandscapeMobile ? "text-[8px]" : "text-xs"}`}
-                  >
-                    Room Code
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 tracking-widest ${isLandscapeMobile ? "text-base" : "text-2xl"}`}
-                    >
-                      {roomCode}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigator.clipboard.writeText(roomCode);
-                        playSound("click");
-                      }}
-                      className={`bg-white/5 hover:bg-white/10 text-slate-355 hover:text-white px-2 py-0.5 rounded-md border border-white/5 font-extrabold uppercase transition-all ${isLandscapeMobile ? "text-[7px]" : "text-[10px]"}`}
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-                <div
-                  className={`text-right text-slate-500 font-medium ${isLandscapeMobile ? "text-[8px]" : "text-xs"}`}
+            )}            <div
+              className={`flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 shadow-inner ${
+                isLandscapeMobile
+                  ? "flex-row gap-2 p-2 rounded-xl"
+                  : "flex-col sm:flex-row gap-4 p-4.5"
+              }`}
+            >
+              <div className="flex flex-col gap-0.5">
+                <span
+                  className={`text-slate-400 font-bold uppercase tracking-wider ${isLandscapeMobile ? "text-[8px]" : "text-xs"}`}
                 >
-                  {isHost ? (
-                    <span className="text-emerald-400 font-bold">
-                      You are the HOST.
-                    </span>
-                  ) : (
-                    <span className="text-amber-400 font-bold">
-                      Waiting for host...
-                    </span>
-                  )}
+                  Room Code
+                </span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 tracking-widest ${isLandscapeMobile ? "text-base" : "text-2xl"}`}
+                  >
+                    {roomCode}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(roomCode);
+                      playSound("click");
+                    }}
+                    className={`bg-white/5 hover:bg-white/10 text-slate-355 hover:text-white px-2 py-0.5 rounded-md border border-white/5 font-extrabold uppercase transition-all ${isLandscapeMobile ? "text-[7px]" : "text-[10px]"}`}
+                  >
+                    Copy
+                  </button>
                 </div>
               </div>
-            ) : (
-              /* Add Player Input */
-              <form onSubmit={handleAddPlayer} className="flex gap-2 sm:gap-3">
-                <input
-                  type="text"
-                  placeholder="Enter player name..."
-                  value={newPlayerName}
-                  maxLength={16}
-                  onChange={(e) => setNewPlayerName(e.target.value)}
-                  className={`flex-1 glass-input ${
-                    isLandscapeMobile
-                      ? "py-0.5 px-2 rounded-lg text-[10px]"
-                      : "py-1.5 px-3 sm:py-3 sm:px-4 rounded-xl sm:rounded-2xl text-xs sm:text-sm"
-                  }`}
-                />
-                <button
-                  type="submit"
-                  disabled={lobbyPlayers.length >= settings.playerLimit}
-                  className={`bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-650 hover:to-amber-650 text-white font-extrabold shadow-md disabled:opacity-30 transition-all flex items-center gap-1.5 uppercase tracking-wider shrink-0 ${
-                    isLandscapeMobile
-                      ? "text-[8px] px-2 py-0.5 rounded-lg"
-                      : "text-[10px] sm:text-xs px-3 py-1.5 sm:px-5 sm:py-3 rounded-xl sm:rounded-2xl"
-                  }`}
-                >
-                  <UserPlus
-                    className={
-                      isLandscapeMobile
-                        ? "h-3 w-3"
-                        : "h-3.5 w-3.5 sm:h-4 sm:w-4"
-                    }
-                  />
-                  <span>Add</span>
-                </button>
-              </form>
-            )}
+              <div
+                className={`text-right text-slate-500 font-medium ${isLandscapeMobile ? "text-[8px]" : "text-xs"}`}
+              >
+                {isHost ? (
+                  <span className="text-emerald-400 font-bold">
+                    You are the HOST.
+                  </span>
+                ) : (
+                  <span className="text-amber-400 font-bold">
+                    Waiting for host...
+                  </span>
+                )}
+              </div>
+            </div>
 
             <div
               className={`flex flex-col ${
@@ -525,7 +477,7 @@ export const Game = () => {
                       type="text"
                       value={player.name}
                       maxLength={16}
-                      disabled={isMultiplayer && player.id !== myPlayerId}
+                      disabled={player.id !== myPlayerId}
                       onChange={(e) =>
                         updateLobbyPlayerName(player.id, e.target.value)
                       }
@@ -533,23 +485,9 @@ export const Game = () => {
                         isLandscapeMobile
                           ? "text-[9px] py-0"
                           : "text-xs sm:text-sm py-0.5"
-                      } ${isMultiplayer && player.id !== myPlayerId ? "cursor-default" : "cursor-text"}`}
+                      } ${player.id !== myPlayerId ? "cursor-default" : "cursor-text"}`}
                     />
                   </div>
-
-                  {!isMultiplayer && lobbyPlayers.length > 2 && (
-                    <button
-                      onClick={() => removeLobbyPlayer(player.id)}
-                      className="p-0.5 text-slate-450 hover:text-red-400 hover:bg-red-500/10 rounded transition-all shrink-0"
-                      title="Remove Player"
-                    >
-                      <Trash2
-                        className={
-                          isLandscapeMobile ? "h-2.5 w-2.5" : "h-4 w-4"
-                        }
-                      />
-                    </button>
-                  )}
                 </div>
               ))}
             </div>
@@ -579,7 +517,7 @@ export const Game = () => {
                   startGame();
                   setShowShuffleAnimation(true);
                 }}
-                disabled={lobbyPlayers.length < 2 || (isMultiplayer && !isHost)}
+                disabled={lobbyPlayers.length < 2 || !isHost}
                 className={`flex-grow-[2] rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-extrabold tracking-wider uppercase transition-all duration-300 shadow-lg shadow-emerald-500/15 flex items-center justify-center gap-1 border border-white/10 disabled:opacity-30 ${
                   isLandscapeMobile
                     ? "py-1.5 text-[9px] rounded-lg"
@@ -590,7 +528,7 @@ export const Game = () => {
                   className={`fill-white ${isLandscapeMobile ? "h-3 w-3" : "h-4 w-4"}`}
                 />
                 <span>
-                  {isMultiplayer && !isHost ? "Waiting..." : "Start Match"}
+                  {!isHost ? "Waiting..." : "Start Match"}
                 </span>
               </button>
             </div>
@@ -759,42 +697,20 @@ export const Game = () => {
             {/* UNO declarer alarms */}
             <UNOButton
               isCurrentTurn={isMyTurn}
-              handSize={
-                isMultiplayer
-                  ? players.find((p) => p.id === myPlayerId)?.hand?.length || 0
-                  : players[currentTurn]?.hand?.length || 0
-              }
-              hasDeclaredUno={
-                isMultiplayer
-                  ? players.find((p) => p.id === myPlayerId)?.declaredUno ||
-                    false
-                  : players[currentTurn]?.declaredUno || false
-              }
+              handSize={players.find((p) => p.id === myPlayerId)?.hand?.length || 0}
+              hasDeclaredUno={players.find((p) => p.id === myPlayerId)?.declaredUno || false}
               onDeclare={declareUno}
             />
 
             {/* Current Active Player Cards hand */}
             <PlayerHand
-              hand={
-                isMultiplayer
-                  ? players.find((p) => p.id === myPlayerId)?.hand || []
-                  : players[currentTurn]?.hand || []
-              }
+              hand={players.find((p) => p.id === myPlayerId)?.hand || []}
               onPlayCard={playCard}
               isCurrentTurn={isMyTurn}
               topCard={discardPile[discardPile.length - 1]}
               currentColor={currentColor}
-              playerName={
-                isMultiplayer
-                  ? players.find((p) => p.id === myPlayerId)?.name || ""
-                  : players[currentTurn]?.name || ""
-              }
-              onRename={
-                isMultiplayer
-                  ? (newName) => updateLobbyPlayerName(myPlayerId, newName)
-                  : (newName) =>
-                      updateLobbyPlayerName(players[currentTurn]?.id, newName)
-              }
+              playerName={players.find((p) => p.id === myPlayerId)?.name || ""}
+              onRename={(newName) => updateLobbyPlayerName(myPlayerId, newName)}
               cardSize={isLandscapeMobile ? "xs" : "md"}
               isLandscapeMobile={isLandscapeMobile}
               pendingDrawCount={pendingDrawCount}

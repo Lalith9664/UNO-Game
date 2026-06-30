@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Trophy, RotateCcw, Home, Clock, Hash, CheckSquare, Sparkles } from 'lucide-react';
 
 // Hardware-accelerated Canvas Confetti & Party Poppers Component
@@ -213,6 +213,18 @@ export const WinnerModal = ({
 }) => {
   if (!winner) return null;
 
+  const [isLandscape, setIsLandscape] = useState(
+    typeof window !== 'undefined' ? (window.innerWidth > window.innerHeight && window.innerHeight < 650) : false
+  );
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLandscape(window.innerWidth > window.innerHeight && window.innerHeight < 650);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Confetti party popper canvas */}
@@ -222,107 +234,212 @@ export const WinnerModal = ({
       <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-md transition-all duration-500"></div>
 
       {/* Congratulations Modal Card */}
-      <div className="relative glass-panel rounded-3xl w-full max-w-lg overflow-hidden border border-white/10 shadow-2xl shadow-black/90 animate-deal-card max-h-[90vh] flex flex-col z-10">
+      <div className={`relative glass-panel rounded-3xl w-full border border-white/10 shadow-2xl shadow-black/90 animate-deal-card flex flex-col z-10 ${
+        isLandscape 
+          ? 'max-w-2xl max-h-[95vh] p-4 overflow-y-auto' 
+          : 'max-w-lg max-h-[90vh] overflow-hidden'
+      }`}>
         
         {/* Glow effect matching winner avatar color */}
         <div className={`absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[100px] opacity-45 bg-gradient-to-r ${winner.avatarGradient} animate-pulse-slow`}></div>
 
-        {/* Modal Header & Trophy Hype */}
-        <div className="relative pt-10 pb-4 flex flex-col items-center text-center px-6">
-          {/* Animated Halo behind Trophy */}
-          <div className="absolute top-10 h-24 w-24 rounded-full bg-yellow-500/20 blur-xl animate-ping opacity-60"></div>
-          
-          <div className={`relative h-24 w-24 rounded-2xl bg-gradient-to-tr ${winner.avatarGradient} flex items-center justify-center shadow-2xl shadow-black/50 mb-5 border border-white/20 scale-105 hover:scale-110 transition-transform duration-300`}>
-            <Trophy className="h-12 w-12 text-white animate-bounce-slow" />
-            <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-yellow-300 animate-pulse" />
-          </div>
-          
-          <h2 className="text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] uppercase">
-            CONGRATULATIONS!
-          </h2>
-          <p className="text-slate-400 font-medium text-xs sm:text-sm mt-2 tracking-widest uppercase">
-            We have a champion
-          </p>
-        </div>
+        {isLandscape ? (
+          // Landscape layout: 2 columns
+          <div className="relative z-10 flex flex-row gap-4 h-full w-full">
+            {/* Left Column: Trophy & Congratulations */}
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-2 border-r border-white/5 pr-4">
+              <div className={`relative h-12 w-12 rounded-xl bg-gradient-to-tr ${winner.avatarGradient} flex items-center justify-center shadow-lg mb-2 border border-white/20`}>
+                <Trophy className="h-6 w-6 text-white" />
+                <Sparkles className="absolute -top-1 -right-1 h-3.5 w-3.5 text-yellow-300 animate-pulse" />
+              </div>
+              
+              <h2 className="text-xl sm:text-2xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] uppercase leading-tight">
+                CONGRATULATIONS!
+              </h2>
+              <p className="text-slate-400 font-medium text-[9px] tracking-widest uppercase mt-0.5">
+                We have a champion
+              </p>
 
-        {/* Winner Details & Title Showcase */}
-        <div className="relative px-8 py-3 flex flex-col items-center">
-          <div className="relative group mb-8">
-            <span className={`absolute -inset-1 rounded-full bg-gradient-to-r ${winner.avatarGradient} blur-md opacity-75 group-hover:opacity-100 transition duration-300`}></span>
-            <div className={`relative px-8 py-3 rounded-full border border-white/10 bg-slate-950/90 font-black text-2xl sm:text-3xl text-white shadow-2xl flex items-center gap-3.5`}>
-              <span className={`w-4 h-4 rounded-full bg-gradient-to-r ${winner.avatarGradient} shadow-md`}></span>
-              <span className={`bg-gradient-to-r ${winner.avatarGradient} bg-clip-text text-transparent font-black`}>
-                {winner.name}
-              </span>
+              <div className="relative group mt-2.5">
+                <span className={`absolute -inset-0.5 rounded-full bg-gradient-to-r ${winner.avatarGradient} blur-sm opacity-75`}></span>
+                <div className="relative px-3.5 py-1 rounded-full border border-white/10 bg-slate-950/90 font-black text-xs text-white shadow-lg flex items-center gap-2">
+                  <span className={`w-2 h-2 rounded-full bg-gradient-to-r ${winner.avatarGradient}`}></span>
+                  <span className={`bg-gradient-to-r ${winner.avatarGradient} bg-clip-text text-transparent font-black`}>
+                    {winner.name}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column: Stats & Actions */}
+            <div className="flex-[1.2] flex flex-col justify-between">
+              <div>
+                <p className="text-[9px] font-extrabold text-slate-500 uppercase tracking-widest mb-1.5">
+                  Match performance report
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="glass-card rounded-xl p-2 flex flex-col gap-0.5 border border-white/5 bg-slate-900/40">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-cyan-400" />
+                      Duration
+                    </span>
+                    <span className="text-sm font-extrabold text-white">
+                      {matchStats.duration}s
+                    </span>
+                  </div>
+
+                  <div className="glass-card rounded-xl p-2 flex flex-col gap-0.5 border border-white/5 bg-slate-900/40">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Hash className="h-3 w-3 text-purple-400" />
+                      Turns
+                    </span>
+                    <span className="text-sm font-extrabold text-white">
+                      {matchStats.totalTurns}
+                    </span>
+                  </div>
+
+                  <div className="glass-card rounded-xl p-2 flex flex-col gap-0.5 border border-white/5 bg-slate-900/40">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <CheckSquare className="h-3 w-3 text-emerald-400" />
+                      Played
+                    </span>
+                    <span className="text-sm font-extrabold text-white">
+                      {winner.stats?.cardsPlayed || 0}
+                    </span>
+                  </div>
+
+                  <div className="glass-card rounded-xl p-2 flex flex-col gap-0.5 border border-white/5 bg-slate-900/40">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1">
+                      <Trophy className="h-3 w-3 text-yellow-400" />
+                      Turns Taken
+                    </span>
+                    <span className="text-sm font-extrabold text-white">
+                      {winner.stats?.turnsTaken || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Landscape buttons */}
+              <div className="mt-3 flex gap-2">
+                <button
+                  onClick={onPlayAgain}
+                  className="flex-1 bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-650 hover:to-amber-600 text-white font-extrabold px-3 py-1.5 rounded-lg shadow-lg active:scale-98 transition-all flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Play Again
+                </button>
+                <button
+                  onClick={onBackToHome}
+                  className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold px-3 py-1.5 rounded-lg active:scale-98 transition-all flex items-center justify-center gap-1.5 text-xs uppercase tracking-wider"
+                >
+                  <Home className="h-3.5 w-3.5" />
+                  Home
+                </button>
+              </div>
             </div>
           </div>
-
-          {/* Stats Header */}
-          <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3.5 self-start">
-            Match performance report
-          </p>
-
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 gap-4 w-full mb-2">
-            <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 text-cyan-400" />
-                Duration
-              </span>
-              <span className="text-xl font-extrabold text-white">
-                {matchStats.duration}s
-              </span>
+        ) : (
+          // Portrait layout (original)
+          <>
+            {/* Modal Header & Trophy Hype */}
+            <div className="relative pt-10 pb-4 flex flex-col items-center text-center px-6">
+              {/* Animated Halo behind Trophy */}
+              <div className="absolute top-10 h-24 w-24 rounded-full bg-yellow-500/20 blur-xl animate-ping opacity-60"></div>
+              
+              <div className={`relative h-24 w-24 rounded-2xl bg-gradient-to-tr ${winner.avatarGradient} flex items-center justify-center shadow-2xl shadow-black/50 mb-5 border border-white/20 scale-105 hover:scale-110 transition-transform duration-300`}>
+                <Trophy className="h-12 w-12 text-white animate-bounce-slow" />
+                <Sparkles className="absolute -top-2 -right-2 h-6 w-6 text-yellow-300 animate-pulse" />
+              </div>
+              
+              <h2 className="text-4xl sm:text-5xl font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-500 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] uppercase">
+                CONGRATULATIONS!
+              </h2>
+              <p className="text-slate-400 font-medium text-xs sm:text-sm mt-2 tracking-widest uppercase">
+                We have a champion
+              </p>
             </div>
 
-            <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Hash className="h-3.5 w-3.5 text-purple-400" />
-                Total Turns
-              </span>
-              <span className="text-xl font-extrabold text-white">
-                {matchStats.totalTurns}
-              </span>
+            {/* Winner Details & Title Showcase */}
+            <div className="relative px-8 py-3 flex flex-col items-center">
+              <div className="relative group mb-8">
+                <span className={`absolute -inset-1 rounded-full bg-gradient-to-r ${winner.avatarGradient} blur-md opacity-75 group-hover:opacity-100 transition duration-300`}></span>
+                <div className={`relative px-8 py-3 rounded-full border border-white/10 bg-slate-950/90 font-black text-2xl sm:text-3xl text-white shadow-2xl flex items-center gap-3.5`}>
+                  <span className={`w-4 h-4 rounded-full bg-gradient-to-r ${winner.avatarGradient} shadow-md`}></span>
+                  <span className={`bg-gradient-to-r ${winner.avatarGradient} bg-clip-text text-transparent font-black`}>
+                    {winner.name}
+                  </span>
+                </div>
+              </div>
+
+              {/* Stats Header */}
+              <p className="text-[10px] font-extrabold text-slate-500 uppercase tracking-widest mb-3.5 self-start">
+                Match performance report
+              </p>
+
+              {/* Stats Grid */}
+              <div className="grid grid-cols-2 gap-4 w-full mb-2">
+                <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Clock className="h-3.5 w-3.5 text-cyan-400" />
+                    Duration
+                  </span>
+                  <span className="text-xl font-extrabold text-white">
+                    {matchStats.duration}s
+                  </span>
+                </div>
+
+                <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Hash className="h-3.5 w-3.5 text-purple-400" />
+                    Total Turns
+                  </span>
+                  <span className="text-xl font-extrabold text-white">
+                    {matchStats.totalTurns}
+                  </span>
+                </div>
+
+                <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <CheckSquare className="h-3.5 w-3.5 text-emerald-400" />
+                    Cards Played
+                  </span>
+                  <span className="text-xl font-extrabold text-white">
+                    {winner.stats?.cardsPlayed || 0}
+                  </span>
+                </div>
+
+                <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+                    <Trophy className="h-3.5 w-3.5 text-yellow-400" />
+                    Turns Taken
+                  </span>
+                  <span className="text-xl font-extrabold text-white">
+                    {winner.stats?.turnsTaken || 0}
+                  </span>
+                </div>
+              </div>
             </div>
 
-            <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <CheckSquare className="h-3.5 w-3.5 text-emerald-400" />
-                Cards Played
-              </span>
-              <span className="text-xl font-extrabold text-white">
-                {winner.stats?.cardsPlayed || 0}
-              </span>
+            {/* Modal Actions */}
+            <div className="relative mt-auto p-6 bg-slate-950/65 border-t border-white/5 flex flex-col sm:flex-row gap-3 z-20">
+              <button
+                onClick={onPlayAgain}
+                className="flex-1 bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-650 hover:to-amber-600 text-white font-extrabold px-6 py-4 rounded-xl shadow-xl shadow-red-500/20 active:scale-98 hover:shadow-red-500/30 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
+              >
+                <RotateCcw className="h-4.5 w-4.5" />
+                Play Again
+              </button>
+              <button
+                onClick={onBackToHome}
+                className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold px-6 py-4 rounded-xl active:scale-98 hover:border-white/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
+              >
+                <Home className="h-4.5 w-4.5" />
+                Back to Home
+              </button>
             </div>
-
-            <div className="glass-card rounded-2xl p-4 flex flex-col gap-1 border border-white/5 bg-slate-900/40 hover:bg-slate-900/60 transition-colors">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Trophy className="h-3.5 w-3.5 text-yellow-400" />
-                Turns Taken
-              </span>
-              <span className="text-xl font-extrabold text-white">
-                {winner.stats?.turnsTaken || 0}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Modal Actions */}
-        <div className="relative mt-auto p-6 bg-slate-950/65 border-t border-white/5 flex flex-col sm:flex-row gap-3 z-20">
-          <button
-            onClick={onPlayAgain}
-            className="flex-1 bg-gradient-to-r from-red-500 to-amber-500 hover:from-red-650 hover:to-amber-600 text-white font-extrabold px-6 py-4 rounded-xl shadow-xl shadow-red-500/20 active:scale-98 hover:shadow-red-500/30 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
-          >
-            <RotateCcw className="h-4.5 w-4.5" />
-            Play Again
-          </button>
-          <button
-            onClick={onBackToHome}
-            className="flex-1 bg-white/5 hover:bg-white/10 text-white border border-white/10 font-bold px-6 py-4 rounded-xl active:scale-98 hover:border-white/20 transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider"
-          >
-            <Home className="h-4.5 w-4.5" />
-            Back to Home
-          </button>
-        </div>
+          </>
+        )}
       </div>
     </div>
   );

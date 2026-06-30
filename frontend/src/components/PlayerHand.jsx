@@ -18,8 +18,23 @@ export const PlayerHand = ({
 }) => {
   return (
     <div className={`w-full flex flex-col items-center transition-all duration-300 ${!isCurrentTurn ? 'opacity-100' : ''}`}>
-      {/* Player Header Info - hidden on landscape mobile to save space */}
-      {!isLandscapeMobile && (
+      {/* Player Header Info */}
+      {isLandscapeMobile ? (
+        <div className="w-full flex items-center justify-center gap-2 px-2 mb-0.5">
+          <span className="text-[9px] font-extrabold text-white uppercase tracking-wider">{playerName}</span>
+          <span className="h-0.5 w-0.5 rounded-full bg-slate-600"></span>
+          <span className="text-[8px] font-bold text-slate-500">{hand.length} {hand.length === 1 ? 'Card' : 'Cards'}</span>
+          {isCurrentTurn ? (
+            <span className="text-[7px] font-bold text-emerald-400 bg-emerald-500/10 px-1 py-0.25 rounded border border-emerald-500/20">
+              YOUR TURN
+            </span>
+          ) : (
+            <span className="text-[7px] font-bold text-slate-500 bg-slate-700/30 px-1 py-0.25 rounded border border-slate-600/20">
+              WAITING
+            </span>
+          )}
+        </div>
+      ) : (
         <div className="w-full max-w-4xl flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4 px-2 sm:px-4 mb-0.5 sm:mb-2">
           <h3 className="text-[10px] sm:text-xs md:text-sm font-semibold tracking-wider text-slate-400 uppercase flex items-center gap-1.5 sm:gap-2">
             {onRename ? (

@@ -652,7 +652,7 @@ export const Game = () => {
                   !showColorPicker
                 }
                 onDraw={drawCard}
-                size={isLandscapeMobile ? "xs" : "md"}
+                size={isLandscapeMobile ? "sm" : "md"}
                 pendingDrawCount={pendingDrawCount}
               />
 
@@ -660,7 +660,7 @@ export const Game = () => {
               <DiscardPile
                 discardPile={discardPile}
                 currentColor={currentColor}
-                size={isLandscapeMobile ? "xs" : "md"}
+                size={isLandscapeMobile ? "sm" : "md"}
               />
             </div>
 
@@ -711,7 +711,7 @@ export const Game = () => {
               currentColor={currentColor}
               playerName={players.find((p) => p.id === myPlayerId)?.name || ""}
               onRename={(newName) => updateLobbyPlayerName(myPlayerId, newName)}
-              cardSize={isLandscapeMobile ? "xs" : "md"}
+              cardSize={isLandscapeMobile ? "sm" : "md"}
               isLandscapeMobile={isLandscapeMobile}
               pendingDrawCount={pendingDrawCount}
               pendingDrawType={pendingDrawType}

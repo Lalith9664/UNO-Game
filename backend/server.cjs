@@ -202,6 +202,15 @@ io.on('connection', (socket) => {
       return;
     }
 
+    // If only 1 player left, close the room
+    if (room.players.length === 1) {
+      const lastPlayer = room.players[0];
+      io.to(lastPlayer.socketId).emit('roomClosed', { reason: 'All other players have left the room.' });
+      delete rooms[code];
+      console.log(`Room ${code} closed (only 1 player remaining)`);
+      return;
+    }
+
     // Re-index avatars
     room.players.forEach((p, idx) => {
       p.avatarGradient = AVATAR_GRADIENTS[idx % AVATAR_GRADIENTS.length];
@@ -213,7 +222,6 @@ io.on('connection', (socket) => {
       room.hostSocketId = newHost.socketId;
       room.hostPlayerId = newHost.id;
       console.log(`Host left! New host of room ${code} is ${newHost.name}`);
-      // Emit playerLeft first so the host is removed from lobby, then assign new host
       io.to(code).emit('playerLeft', { playerId: leavingPlayer.id, players: room.players });
       io.to(code).emit('newHostAssigned', { hostPlayerId: newHost.id, players: room.players });
     } else {
@@ -240,6 +248,15 @@ io.on('connection', (socket) => {
         if (room.players.length === 0) {
           delete rooms[code];
           console.log(`Room ${code} closed (empty)`);
+          return;
+        }
+
+        // If only 1 player left, close the room
+        if (room.players.length === 1) {
+          const lastPlayer = room.players[0];
+          io.to(lastPlayer.socketId).emit('roomClosed', { reason: 'All other players have left the room.' });
+          delete rooms[code];
+          console.log(`Room ${code} closed (only 1 player remaining after disconnect)`);
           return;
         }
 

@@ -774,7 +774,7 @@ export const GameProvider = ({ children }) => {
 
       setDrawPile(updatedDrawPile);
       addLog(`PENALTY! ${activePlayer.name} forgot to call UNO! Drew 2 cards.`);
-      triggerUnoAlert(activePlayer.name, "Forgot to declare UNO! Drew 2 cards penalty.");
+      triggerUnoAlert(activePlayer.id, activePlayer.name, "Forgot to declare UNO! Drew 2 cards penalty.");
     }
 
     // Save state
@@ -849,12 +849,12 @@ export const GameProvider = ({ children }) => {
     setPlayers(updatedPlayers);
     playSound('uno');
     addLog(`${activePlayer.name} declared UNO! 📢`);
-    triggerUnoAlert(activePlayer.name, "Declared UNO! 📢");
+    triggerUnoAlert(activePlayer.id, activePlayer.name, "Declared UNO! 📢");
   };
 
   // Helper to trigger UI Uno Alert
-  const triggerUnoAlert = (playerName, message) => {
-    setUnoAlert({ playerName, message });
+  const triggerUnoAlert = (playerId, playerName, message) => {
+    setUnoAlert({ playerId, playerName, message });
     setTimeout(() => {
       setUnoAlert(null);
     }, 3000);
@@ -895,7 +895,7 @@ export const GameProvider = ({ children }) => {
       setDiscardPile(updatedDiscardPile);
       
       addLog(`PENALTY! ${activePlayer.name} forgot to call UNO! Drew 2 cards.`);
-      triggerUnoAlert(activePlayer.name, "Forgot to declare UNO! Drew 2 cards penalty.");
+      triggerUnoAlert(activePlayer.id, activePlayer.name, "Forgot to declare UNO! Drew 2 cards penalty.");
     }
   };
 
@@ -988,7 +988,14 @@ export const GameProvider = ({ children }) => {
   const initSocket = () => {
     if (socketRef.current) return socketRef.current;
     
-    const backendUrl = import.meta.env.VITE_BACKEND_URL || window.location.origin;
+    let backendUrl = import.meta.env.VITE_BACKEND_URL;
+    if (!backendUrl) {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        backendUrl = 'http://localhost:3001';
+      } else {
+        backendUrl = window.location.origin;
+      }
+    }
     console.log('Initializing socket connection to:', backendUrl);
     const newSocket = io(backendUrl, {
       autoConnect: true,
@@ -1021,6 +1028,7 @@ export const GameProvider = ({ children }) => {
     socketInst.off('gameStateSynced');
     socketInst.off('hostRequestRename');
     socketInst.off('processPlayerAction');
+    socketInst.off('roomClosed');
 
     socketInst.on('playerJoined', ({ players: updatedPlayers, newPlayer }) => {
       setLobbyPlayers(updatedPlayers);
@@ -1056,6 +1064,25 @@ export const GameProvider = ({ children }) => {
         setIsHost(true);
         addLog("You are now the room host!");
       }
+    });
+
+    socketInst.on('roomClosed', ({ reason }) => {
+      console.log('Room closed by server:', reason);
+      showToast(reason || 'The room has been closed.');
+      // Reset multiplayer state — the isMultiplayer=false will trigger
+      // Game.jsx redirect useEffect to navigate home
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+        setSocket(null);
+      }
+      setIsMultiplayer(false);
+      setIsHost(false);
+      setRoomCode('');
+      setMyPlayerId('');
+      setLobbyPlayers(INITIAL_PLAYERS);
+      setPlayers([]);
+      setGameStage('setup');
     });
 
     socketInst.on('gameStateSynced', (syncedState) => {

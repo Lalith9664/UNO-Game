@@ -256,6 +256,16 @@ export const Game = () => {
                     WAITING
                   </span>
                 )}
+
+                {/* Inline UNO Alert */}
+                {unoAlert && unoAlert.playerId === player.id && (
+                  <div className="absolute -bottom-7 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up whitespace-nowrap">
+                    <div className="flex items-center gap-1 bg-slate-950/90 backdrop-blur-md border border-amber-500/30 rounded-full px-2 py-0.5 shadow-lg shadow-amber-500/20">
+                      <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping"></span>
+                      <span className="text-[7px] font-black text-amber-300 uppercase tracking-wider">{unoAlert.message}</span>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
@@ -345,6 +355,22 @@ export const Game = () => {
               )}
             </div>
           </div>
+
+          {/* Inline UNO Alert for this opponent */}
+          {unoAlert && unoAlert.playerId === player.id && (
+            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-50 animate-fade-in-up whitespace-nowrap">
+              <div className="flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-xl border border-amber-500/30 rounded-full px-3 py-1 shadow-xl shadow-amber-500/20">
+                <div className="relative flex-shrink-0">
+                  <div className="absolute -inset-0.5 rounded-full bg-gradient-to-r from-red-500 to-amber-500 blur-sm opacity-70 animate-pulse"></div>
+                  <div className="relative h-5 w-5 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center border border-amber-400">
+                    <span className="text-[5px] font-black text-white italic">UNO</span>
+                  </div>
+                </div>
+                <span className="text-[9px] font-black text-amber-300 uppercase tracking-wider">{unoAlert.message}</span>
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping"></span>
+              </div>
+            </div>
+          )}
 
           {/* Miniature card back stack to visualize cards in hand */}
           <div className="flex gap-0.5 justify-center overflow-hidden px-1 mt-2 h-7 sm:h-9 max-w-[80px] sm:max-w-xs">
@@ -762,14 +788,29 @@ export const Game = () => {
             </div>
           </div>
 
-          {/* UNO Alert overlay notifications */}
-          {unoAlert && (
-            <div className="fixed top-1/3 left-1/2 -translate-x-1/2 z-50 bg-red-600 text-white font-black tracking-widest text-center border-4 border-amber-400 rounded-3xl p-6 shadow-2xl shadow-black/80 animate-bounce-slow text-2xl rotate-[-5deg]">
-              <ShieldAlert className="h-10 w-10 mx-auto mb-2 text-white animate-pulse" />
-              <p className="uppercase">{unoAlert.playerName}!</p>
-              <p className="text-sm font-bold text-amber-200 mt-1 uppercase tracking-wide">
-                {unoAlert.message}
-              </p>
+          {/* UNO Alert for self (current player) — shown above hand */}
+          {unoAlert && unoAlert.playerId === myPlayerId && (
+            <div className="fixed bottom-32 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-fade-in-up">
+              <div className="flex items-center gap-2 bg-slate-950/85 backdrop-blur-xl border border-amber-500/30 rounded-full px-4 py-2 shadow-2xl shadow-amber-500/20">
+                <div className="relative flex-shrink-0">
+                  <div className="absolute -inset-1 rounded-full bg-gradient-to-r from-red-500 to-amber-500 blur-sm opacity-80 animate-pulse"></div>
+                  <div className="relative h-8 w-8 rounded-full bg-gradient-to-br from-red-500 to-red-700 flex items-center justify-center border-2 border-amber-400 shadow-lg">
+                    <span className="text-[8px] font-black text-white italic tracking-tight">UNO</span>
+                  </div>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-sm font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-400 to-amber-300 uppercase tracking-wider leading-tight">
+                    {unoAlert.playerName}
+                  </span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                    {unoAlert.message}
+                  </span>
+                </div>
+                <div className="flex gap-1 ml-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-ping"></span>
+                  <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-ping" style={{ animationDelay: '0.15s' }}></span>
+                </div>
+              </div>
             </div>
           )}
 
